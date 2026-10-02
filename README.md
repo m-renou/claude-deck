@@ -1,5 +1,7 @@
 # Claude Deck — Claude Code for Stream Deck
 
+![Claude Deck: Claude Code on a 15-key Stream Deck](docs/images/hero.png)
+
 A Stream Deck plugin for the **Claude desktop app's Code tab** (Claude Code). Follow your chats on keys, open one
 with a press, send prompts, steer or stop running work, switch model / effort (Ultracode included) / Fast mode,
 watch your plan usage, and toggle the app's panels — all from hardware keys and dials.
@@ -11,6 +13,8 @@ and drives the app through its own keyboard shortcuts.
 > coral. Not affiliated with, or endorsed by, Anthropic or Elgato.
 
 ## Keys
+
+![Every key](docs/images/all-keys.png)
 
 | Key | What it shows | Press |
 | --- | --- | --- |
@@ -28,8 +32,14 @@ and drives the app through its own keyboard shortcuts.
 | **Toggle Panel** | The panel's icon | Shows / hides Review (diff), Terminal, Browser, Files or Side chat |
 | **Keep Awake** | Coffee mug (steaming while on, time left when timed) | Turns [KeepingYouAwake](https://keepingyouawake.app) on / off — optional, needs that app |
 
+![Activity keys: working, needs you, done, idle](docs/images/activity.png)
+
+![Model, Effort (Ultra), Speed and Usage keys](docs/images/controls.png)
+
 **Dials (Stream Deck +):** Activity (browse chats), Run Skill (browse skills), **Power** (one Faster ↔ Smarter scale of
 model × effort) and Usage. **Stream Deck Neo:** Activity and Usage on the infobar.
+
+![Stream Deck + with the Activity, Run Skill, Power and Usage dials](docs/images/stream-deck-plus.png)
 
 Every action targets the **selected chat** — the one open in Claude, or the one you last opened from the deck. A
 failed press shows Stream Deck's ⚠; a successful one simply shows the new state.
@@ -156,6 +166,7 @@ npm run typecheck
 npm run validate     # streamdeck validate
 npm run gen          # regenerate icons, bundled profiles and manifest.json
 npm run pack         # dist/com.local.claudecode.streamDeckPlugin
+npm run screenshots  # docs/images/*.png from the real key renderers (macOS WebKit)
 ```
 
 ```text
@@ -167,7 +178,8 @@ src/
   claude/            app + CLI integration: session files, Accessibility (JXA), usage, live usage
   render/            SVG rendering for keys, dials and the Neo infobar
   system/            Keep Awake (KeepingYouAwake)
-scripts/             icon / profile / manifest generators, Property Inspector checks
+scripts/             icon / profile / manifest / screenshot generators, Property Inspector checks
+docs/images/         README and social images (1600 × 900 @2x)
 com.local.claudecode.sdPlugin/   the plugin bundle (manifest, UI, images, layouts, profiles)
 test/                unit tests
 ```

@@ -14,7 +14,7 @@
 import type { Chat, ChatStatus, Usage } from "../types.ts";
 import { type IconName, icon } from "./icons.ts";
 import { STATUS_STYLE } from "./keys.ts";
-import { C, FADE_ID, bgRect, clamp, dimVeil, fadeDefs, fitPrefix, n, squash, svg, text, textWidth } from "./kit.ts";
+import { C, FADE_ID, bgRect, clamp, dimVeil, esc, fadeDefs, fitPrefix, n, squash, svg, text, textWidth } from "./kit.ts";
 
 /** Touch-strip canvas of one dial (px), per the layout schema: "Stream Deck +, 200 x 100 px". */
 export const DIAL_W = 200;
@@ -88,6 +88,8 @@ export interface LineOpts {
   bg?: string;
   /** Canvas width (the cover runs to its edge). */
   width: number;
+  /** A second run after a space in its own colour (a <tspan> of the same <text>, so the gap is the font's own). */
+  tail?: { text: string; fill: string };
 }
 
 /**
@@ -96,8 +98,14 @@ export interface LineOpts {
  */
 export function clippedLine(x: number, y: number, content: string, o: LineOpts): { svg: string; overflow: boolean } {
   const fade = o.fade ?? 14;
-  const shown = fitPrefix(squash(content), o.size, Math.max(0, o.clipX - x) + 3 * o.size);
+  const head = squash(content);
+  const tail = o.tail ? squash(o.tail.text) : "";
+  const shown = fitPrefix(tail ? `${head} ${tail}` : head, o.size, Math.max(0, o.clipX - x) + 3 * o.size);
   let out = text(x, y, shown, { size: o.size, fill: o.fill });
+  if (tail && shown.length > head.length + 1) {
+    const span = `<tspan fill="${o.tail!.fill}">${esc(shown.slice(head.length + 1))}</tspan>`;
+    out = out.replace(/>[^<]*<\/text>$/, () => `>${esc(head)} ${span}</text>`);
+  }
   const overflow = x + textWidth(shown, o.size) > o.clipX - 2;
   if (overflow) {
     const top = y - o.size * 0.95;
@@ -249,8 +257,7 @@ export function powerDial(v: PowerDialView): string {
   let size: number = p.titleSize;
   while (size > 13 && D.left + width(size) > p.titleClip - 2) size -= 0.5;
   if (effort && D.left + textWidth(`${model} `, size) < p.titleClip - 16) {
-    lines.raw(text(D.left, p.titleY, model, { size, fill: C.white }));
-    lines.add(D.left + textWidth(`${model} `, size), p.titleY, effort, { size, fill: C.accent, clipX: p.titleClip });
+    lines.add(D.left, p.titleY, model, { size, fill: C.white, clipX: p.titleClip, tail: { text: effort, fill: C.accent } });
   } else {
     lines.add(D.left, p.titleY, model, { size, fill: C.white, clipX: p.titleClip });
   }

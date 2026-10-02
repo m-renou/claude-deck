@@ -200,8 +200,9 @@ describe("powerDial", () => {
   it("draws model + effort, bolt, gradient track with dots, knob and Faster / Smarter", () => {
     const s = powerDial({ model: "Opus 5.5", effort: "Extra", position: 9, steps: 16 });
     wellFormed(s, DIAL_W, DIAL_H);
-    assert.deepEqual(texts(s), ["Opus 5.5", "Extra", "Faster", "Smarter"]);
-    assert.equal(attr(textAttrs(s, "Extra"), "fill"), C.accent);
+    // Model and effort share one <text>: the effort is a <tspan>, so the space between them is the font's own.
+    assert.ok(s.includes(`>Opus 5.5 <tspan fill="${C.accent}">Extra</tspan></text>`));
+    assert.deepEqual(texts(s), ["Faster", "Smarter"]);
     assert.equal(attr(textAttrs(s, "Smarter"), "text-anchor"), "end");
     assert.ok(s.includes(`fill="url(#pw)"`));
     const kx = powerStepX(9, 16);
