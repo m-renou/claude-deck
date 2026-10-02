@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Keep Awake</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="keep-awake">
+  <sdpi-item label="When pressed">
+    <sdpi-select setting="mode" default="toggle">
+      <option value="toggle">Toggle on / off</option>
+      <option value="on">Turn on</option>
+      <option value="off">Turn off</option>
+    </sdpi-select>
+  </sdpi-item>
+  <sdpi-item label="Keep awake for" data-show-if="mode!=off">
+    <sdpi-select setting="duration" default="0">
+      <option value="0">Indefinitely</option>
+      <option value="300">5 minutes</option>
+      <option value="600">10 minutes</option>
+      <option value="900">15 minutes</option>
+      <option value="1800">30 minutes</option>
+      <option value="3600">1 hour</option>
+      <option value="7200">2 hours</option>
+      <option value="18000">5 hours</option>
+    </sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint" data-show-if="mode!=off">Applies when the key turns keep awake on. The key shows the time left.</p>
+  <p class="cc-hint">Uses the <b>KeepingYouAwake</b> app (keepingyouawake.app), which keeps your Mac from sleeping. Coffee cup in coral while it's on.</p>
+  <div id="cc-status" data-rows="keepAwake,result"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

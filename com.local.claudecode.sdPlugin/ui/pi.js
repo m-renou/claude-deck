@@ -16,6 +16,7 @@
 //                                                 (profiles, older settings) gets the dropdowns filled from it.
 //   • [data-chats]                                the live chat list (Activity), from the plugin's getChats replies
 //   • #cc-status                                  the status box: Claude app, Accessibility, selected chat, last result
+//                                                 (data-rows="keepAwake,result": KeepingYouAwake instead of the Claude rows)
 //
 // Plugin messages: sends {event:"getStatus"} / {event:"getChats"} (on load, then every 4 s while visible); the plugin
 // answers and also pushes {event:"status"} / {event:"getChats"} when something changes.
@@ -271,21 +272,39 @@
   // ── Status box ────────────────────────────────────────────────────────────────────────────────────────────
 
   const statusHost = $("#cc-status");
+  const ROWS = {
+    app: ["Claude", "cc-s-app"],
+    access: ["Accessibility", "cc-s-access"],
+    chat: ["Chat", "cc-s-chat"],
+    keepAwake: ["Keep awake", "cc-s-awake"],
+    result: ["Last result", "cc-s-result"],
+  };
+  const rows = ((statusHost && statusHost.dataset.rows) || "app,access,chat,result")
+    .split(",")
+    .map((r) => r.trim())
+    .filter((r) => ROWS[r]);
+  /** The first row's cell carries "waiting for the plugin" / "no answer". */
+  const firstCell = rows.length ? ROWS[rows[0]][1] : "";
 
   const row = (label, id) => h("div", { class: "cc-row" }, h("span", { class: "cc-k" }, label), h("span", { class: "cc-v", id }));
   if (statusHost) {
     statusHost.classList.add("cc-status");
     statusHost.setAttribute("aria-live", "polite");
-    fill(statusHost, row("Claude", "cc-s-app"), row("Accessibility", "cc-s-access"), row("Chat", "cc-s-chat"), row("Last result", "cc-s-result"));
-    fill($("#cc-s-app"), dot(), client ? "Waiting for the plugin…" : "Open this panel from Stream Deck.");
+    fill(statusHost, rows.map((r) => row(ROWS[r][0], ROWS[r][1])));
+    fill(cell(firstCell), dot(), client ? "Waiting for the plugin…" : "Open this panel from Stream Deck.");
   }
-  const cell = (id) => document.getElementById(id);
+  function cell(id) {
+    return id ? document.getElementById(id) : null;
+  }
+
+  /** "14:32" for a time later today. */
+  const clock = (at) => new Date(num(at)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   function renderStatus() {
     if (!statusHost) return;
     const p = status;
     if (!p) {
-      if (!gotStatus && client) fill(cell("cc-s-app"), dot("bad"), "No answer from the plugin", sub("Is the Claude Code plugin running? Reopen this panel."));
+      if (!gotStatus && client) fill(cell(firstCell), dot("bad"), "No answer from the plugin", sub("Is the Claude Code plugin running? Reopen this panel."));
       return;
     }
 
@@ -309,6 +328,14 @@
       );
     } else {
       fill(cell("cc-s-chat"), h("span", { class: "cc-sub" }, "None yet — open the Code tab in the Claude app."));
+    }
+
+    const k = p.keepAwake && typeof p.keepAwake === "object" ? p.keepAwake : null;
+    if (k) {
+      const err = str(k.error) ? sub(`Couldn't read its state: ${str(k.error)}`) : "";
+      if (!k.installed) fill(cell("cc-s-awake"), dot("bad"), "KeepingYouAwake isn't installed", sub("Get it from keepingyouawake.app (or Homebrew), then press the key."), err);
+      else if (k.active) fill(cell("cc-s-awake"), dot("good"), num(k.until) > 0 ? `On until ${clock(k.until)}` : "On", sub(k.pending ? "Switching…" : "Your Mac won't go to sleep."), err);
+      else fill(cell("cc-s-awake"), dot(), "Off", sub(k.pending ? "Switching…" : k.running ? "KeepingYouAwake is running." : "KeepingYouAwake isn't running (turning on starts it)."), err);
     }
 
     const r = p.result && typeof p.result === "object" ? p.result : null;

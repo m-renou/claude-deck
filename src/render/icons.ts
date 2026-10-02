@@ -28,6 +28,7 @@ export const ICON_NAMES = [
   "panel-side-chat",
   "warning",
   "spark",
+  "cup",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -42,7 +43,8 @@ export interface IconOpts {
   strokeWidth?: number;
   /**
    * Solid variant where the icon has one: "send" and "stop" become a filled disc with the arrow / square cut out,
-   * "bolt" and "spark" are filled. Default: send / stop / spark / warning filled, the rest outlined.
+   * "bolt" and "spark" are filled, "cup" is a full mug with steam. Default: send / stop / spark / warning filled, the
+   * rest outlined.
    */
   fill?: boolean;
   /** Colour of the parts drawn "cut out" of a solid shape that cannot use a hole (send's arrow, warning's "!"). */
@@ -136,6 +138,24 @@ type Body = (o: { stroke: string; sw: number; fill: boolean; ko: string; color: 
 
 const stroked = (d: string, a: { stroke: string; sw: number }): string => `<path d="${d}" fill="none" stroke="${a.stroke}" stroke-width="${n(a.sw)}"/>`;
 
+/**
+ * Coffee mug (KeepingYouAwake's symbol): body with rounded bottom corners, a D-shaped handle on the right; the solid
+ * variant fills the body and adds three wavy steam lines above it. Without steam the mug sits 2.9 units higher, so
+ * each variant is optically centred in its box.
+ */
+function cupBody(a: { stroke: string; sw: number; fill: boolean }): string {
+  const dx = -0.4;
+  const dy = a.fill ? 0 : -2.9;
+  const X = (v: number) => n(v + dx);
+  const Y = (v: number) => n(v + dy);
+  const mug = `M${X(3.2)} ${Y(8.4)}H${X(17.2)}V${Y(16.6)}A4.8 4.8 0 0 1 ${X(12.4)} ${Y(21.4)}H${X(8)}A4.8 4.8 0 0 1 ${X(3.2)} ${Y(16.6)}Z`;
+  const handle = `M${X(17.2)} ${Y(10.4)}H${X(18.5)}A3.1 3.1 0 0 1 ${X(18.5)} ${Y(16.6)}H${X(17.2)}`;
+  if (!a.fill) return stroked(mug + handle, a);
+  // Steam: an S-wave per line, rising from just above the rim.
+  const steam = [6.6, 10.2, 13.8].map((x) => `M${X(x)} ${Y(5.4)}Q${X(x - 1)} ${Y(4.45)} ${X(x)} ${Y(3.5)}T${X(x)} ${Y(1.6)}`).join("");
+  return `<path d="${mug}" fill="${a.stroke}" stroke="${a.stroke}" stroke-width="${n(a.sw)}"/>` + stroked(handle + steam, a);
+}
+
 const BODIES: Record<IconName, Body> = {
   chat: (a) => stroked(bubblePath(12.4, 11.6, 9.1, 104, 166, 2.7, 21.3, 0), a),
   check: (a) => stroked("M3.5 12.6L9.1 18.2L20.5 5.8", a),
@@ -209,6 +229,7 @@ const BODIES: Record<IconName, Body> = {
     a.fill
       ? `<path d="${p(sparkPoints(12, 12, 11))}" fill="${a.color}" stroke="${a.color}" stroke-width="${n(SPARK_ROUND)}"/>`
       : stroked(p(sparkPoints(12, 12, 10.5)), a),
+  cup: (a) => cupBody(a),
 };
 
 const DEFAULT_FILL: Partial<Record<IconName, boolean>> = { send: true, stop: true, spark: true, warning: true };

@@ -6,6 +6,7 @@ import { ActivityAction } from "./activity.ts";
 import type { ClaudeAction } from "./base.ts";
 import { DictateAction } from "./dictate.ts";
 import { EffortAction } from "./effort.ts";
+import { KeepAwakeAction } from "./keep-awake.ts";
 import { ModelAction } from "./model.ts";
 import { NewChatAction } from "./new-chat.ts";
 import { PowerAction } from "./power.ts";
@@ -30,6 +31,7 @@ export const ACTION_CLASSES: Record<string, new () => ClaudeAction<JsonObject>> 
   speed: SpeedAction,
   usage: UsageAction,
   "toggle-panel": TogglePanelAction,
+  "keep-awake": KeepAwakeAction,
   power: PowerAction,
 } as unknown as Record<string, new () => ClaudeAction<JsonObject>>;
 

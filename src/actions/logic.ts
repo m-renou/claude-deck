@@ -2,6 +2,9 @@
 
 import { DEFAULT_EFFORT_CYCLE, EFFORT_LABEL, effortStopsFor, modelInfo, modelName } from "../claude/catalog.ts";
 import { BUILTIN_SKILLS } from "../claude/extras.ts";
+import type { KeepAwakeKeyState } from "../render/keys.ts";
+import { countdown } from "../render/kit.ts";
+import type { KeepAwakeState } from "../system/keep-awake.ts";
 import type { Chat, ModelInfo, Usage } from "../types.ts";
 import { str, USAGE_VIEWS, type UsageView } from "./settings.ts";
 
@@ -158,6 +161,15 @@ export function speedState(chat: Chat | undefined, models: ModelInfo[]): SpeedSt
   const info = modelInfo(chat.model, models);
   if (info && !info.fast) return "unavailable";
   return chat.fast ? "on" : "off";
+}
+
+// ── Keep Awake ──────────────────────────────────────────────────────────────────────────────────────────
+
+/** What a Keep Awake key shows for KeepingYouAwake's state (a pending press shows its outcome), at time `now`. */
+export function keepAwakeView(s: KeepAwakeState, now: number): { state: KeepAwakeKeyState; remaining?: string } {
+  if (!s.installed) return { state: "na" };
+  if (!s.active) return { state: "off" };
+  return s.until !== undefined ? { state: "on", remaining: countdown(s.until - now) } : { state: "on" };
 }
 
 // ── Usage ───────────────────────────────────────────────────────────────────────────────────────────────

@@ -32,9 +32,11 @@ const doc = (body: string): string => svg(SIZE, SIZE, body);
 const corner = (name: IconName, color: string, extra: { fill?: boolean } = {}): string =>
   icon(name, { x: L.corner.x, y: L.corner.y, size: L.corner.size, color, strokeWidth: L.corner.stroke, ...extra });
 
-const hero = (name: IconName, color: string, extra: { fill?: boolean; size?: number } = {}): string => {
+/** Centred hero icon; `dy` moves it down (to make room for text above it). */
+const hero = (name: IconName, color: string, extra: { fill?: boolean; size?: number; dy?: number } = {}): string => {
   const size = extra.size ?? L.hero.size;
-  return icon(name, { x: (SIZE - size) / 2, y: (SIZE - size) / 2, size, color, strokeWidth: (L.hero.stroke * size) / L.hero.size, fill: extra.fill });
+  const y = (SIZE - size) / 2 + (extra.dy ?? 0);
+  return icon(name, { x: (SIZE - size) / 2, y, size, color, strokeWidth: (L.hero.stroke * size) / L.hero.size, fill: extra.fill });
 };
 
 /** Body text block (top-aligned or bottom-aligned on the 78 / 100 / 122 baseline grid). */
@@ -203,6 +205,25 @@ export type SpeedKeyState = "on" | "off" | "na" | "unavailable";
 export function speedKey(o: { state: SpeedKeyState }): string {
   if (o.state === "on") return heroKey("bolt", C.accent, { fill: true });
   return heroKey("bolt", C.white, { fill: false, dim: o.state !== "off" });
+}
+
+// ───────────────────────────────────────────────────────────────────────── keep awake
+
+export type KeepAwakeKeyState = "on" | "off" | "na";
+
+/** How far the steaming cup moves down under a time, so the steam (tops at y ≈ 35 when centred) clears the time row. */
+const KEEP_AWAKE_TIME_DY = 7;
+
+/**
+ * KeepingYouAwake's coffee cup: accent filled with steam while the Mac is kept awake, white outline when off, dimmed
+ * when KeepingYouAwake isn't installed. A timed session's time left ("12m") sits top-right, like Activity's time, with
+ * the cup moved down below it (steam tops ≈ 9 px under the baseline even for "4h 59m").
+ */
+export function keepAwakeKey(o: { state: KeepAwakeKeyState; remaining?: string }): string {
+  if (o.state !== "on") return heroKey("cup", C.white, { fill: false, dim: o.state === "na" });
+  if (!o.remaining) return doc(bgRect(C.bg) + hero("cup", C.accent, { fill: true }));
+  const { size, right, baseline } = L.time;
+  return doc(bgRect(C.bg) + hero("cup", C.accent, { fill: true, dy: KEEP_AWAKE_TIME_DY }) + text(right, baseline, o.remaining, { size, fill: C.grey, anchor: "end" }));
 }
 
 // ───────────────────────────────────────────────────────────────────────── usage

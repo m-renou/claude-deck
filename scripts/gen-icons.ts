@@ -17,6 +17,7 @@ import {
   dictateKey,
   effortKey,
   heroKey,
+  keepAwakeKey,
   modelKey,
   newChatKey,
   panelKey,
@@ -70,6 +71,7 @@ const SAMPLE_KEYS: Record<string, () => string> = {
   speed: () => speedKey({ state: "on" }),
   usage: () => usageKey({ kind: "context", percent: 42, line1: "420k / 1M" }),
   "toggle-panel": () => panelKey("review"),
+  "keep-awake": () => keepAwakeKey({ state: "off" }),
   power: () => heroKey("bolt", C.accent, { fill: true }),
 };
 

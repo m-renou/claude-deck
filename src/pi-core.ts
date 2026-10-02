@@ -14,6 +14,7 @@ import type { Skill } from "./claude/extras.ts";
 import { icon } from "./render/icons.ts";
 import { STATUS_STYLE } from "./render/keys.ts";
 import { dataUri, relTime, svg } from "./render/kit.ts";
+import type { KeepAwakeState } from "./system/keep-awake.ts";
 import type { Chat, ChatStatus, ModelInfo, Snapshot } from "./types.ts";
 
 export const PI_EVENTS = ["getChats", "getSkills", "getModels", "getModelSlots", "getFolders", "getStatus"] as const;
@@ -180,6 +181,8 @@ export interface PiStatus {
   follow?: { position: number; auto: boolean };
   /** Live-status problem worth knowing (e.g. `claude agents` failed). */
   note?: string;
+  /** Keep Awake pages: KeepingYouAwake's state (the page shows it instead of the Claude rows). */
+  keepAwake?: { installed: boolean; running: boolean; active: boolean; until?: number; pending?: boolean; error?: string };
 }
 
 export interface StatusInput {
@@ -189,6 +192,8 @@ export interface StatusInput {
   result?: StampedResult;
   controller?: string;
   follow?: { position: number; auto: boolean };
+  /** KeepingYouAwake's state: only a Keep Awake page gets it (other pages ignore it). */
+  keepAwake?: KeepAwakeState;
 }
 
 export function statusPayload(i: StatusInput): PiStatus {
@@ -214,5 +219,12 @@ export function statusPayload(i: StatusInput): PiStatus {
   if (i.controller) out.controller = i.controller;
   if (i.follow) out.follow = { position: i.follow.position, auto: i.follow.auto };
   if (i.snap.error) out.note = i.snap.error;
+  if (i.keepAwake && i.actionId === "keep-awake") {
+    const k = i.keepAwake;
+    out.keepAwake = { installed: k.installed, running: k.running, active: k.active };
+    if (k.active && k.until !== undefined) out.keepAwake.until = k.until;
+    if (k.pending) out.keepAwake.pending = true;
+    if (k.error) out.keepAwake.error = k.error;
+  }
   return out;
 }

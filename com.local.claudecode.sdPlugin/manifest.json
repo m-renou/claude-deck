@@ -327,6 +327,25 @@
 			]
 		},
 		{
+			"UUID": "com.local.claudecode.keep-awake",
+			"Name": "Keep Awake",
+			"Tooltip": "Keep your Mac awake with KeepingYouAwake. Press to turn it on or off.",
+			"Icon": "imgs/actions/cup",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/keep-awake.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/keep-awake",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
 			"UUID": "com.local.claudecode.power",
 			"Name": "Power",
 			"Tooltip": "Move between model and reasoning configurations from a single dial.",

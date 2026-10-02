@@ -252,5 +252,15 @@ export function relTime(ms: number): string {
   return `${Math.floor(h / 24)}d`;
 }
 
+/** Compact time left, counting down (rounded up, so a fresh 30-minute session reads "30m"): "45s", "12m", "1h 5m", "2h". */
+export function countdown(ms: number): string {
+  const s = Number.isFinite(ms) && ms > 0 ? Math.ceil(ms / 1000) : 0;
+  if (s < 60) return `${s}s`;
+  const m = Math.ceil(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return m % 60 ? `${h}h ${m % 60}m` : `${h}h`;
+}
+
 /** Clamp to [lo, hi] (NaN → lo). */
 export const clamp = (v: number, lo: number, hi: number): number => (Number.isNaN(v) ? lo : Math.min(hi, Math.max(lo, v)));

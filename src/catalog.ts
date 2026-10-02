@@ -61,6 +61,13 @@ export const ACTIONS: ActionDef[] = [
     icon: "panel-bottom",
   },
   {
+    id: "keep-awake",
+    name: "Keep Awake",
+    tooltip: "Keep your Mac awake with KeepingYouAwake. Press to turn it on or off.",
+    controllers: ["Keypad"],
+    icon: "cup",
+  },
+  {
     id: "power",
     name: "Power",
     tooltip: "Move between model and reasoning configurations from a single dial.",

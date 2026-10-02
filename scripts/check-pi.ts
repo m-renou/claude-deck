@@ -8,8 +8,11 @@
 //     <body>, all of which must exist; no http(s) / protocol-relative URLs in src / href / url() / @import, and no
 //     network APIs in ui/pi.js; the vendored sdpi-components matches the hash in ui/vendor/README.md;
 //   • show-if / copy-to / list-for / array-of references point at a setting on the same page, datasources are ones
-//     src/pi.ts answers, and fixed option lists match what the actions accept (view, panel, mode, level, effort cycle);
-//     defaults the actions assume are the ones the pages show (Model slots, the effort cycle).
+//     src/pi.ts answers, and fixed option lists match what the actions accept (view, panel, mode, level, effort cycle,
+//     Keep Awake's mode and duration); defaults the actions assume are the ones the pages show (Model slots, the
+//     effort cycle);
+//   • the status box's data-rows names rows ui/pi.js draws (its ROWS), and only the Keep Awake page — the one the
+//     plugin sends KeepingYouAwake's state to — shows the keepAwake row (and it must).
 //
 //   node scripts/check-pi.ts            (exit code 1 when something is wrong)
 
@@ -18,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import url from "node:url";
 import { DEFAULT_EFFORT_CYCLE, parseCycle } from "../src/actions/logic.ts";
-import { MODEL_SLOT_COUNT, slotDefault, USAGE_VIEWS } from "../src/actions/settings.ts";
+import { KEEP_AWAKE_DURATIONS, KEEP_AWAKE_MODES, MODEL_SLOT_COUNT, slotDefault, USAGE_VIEWS } from "../src/actions/settings.ts";
 import { ACTIONS, PANELS, PLUGIN_UUID } from "../src/catalog.ts";
 import { EFFORT_LABEL } from "../src/claude/catalog.ts";
 import { PI_EVENTS } from "../src/pi-core.ts";
@@ -151,13 +154,29 @@ function actionSource(root: string, id: string): string | undefined {
   return files.map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n");
 }
 
+/** Rows the shared status box can show: the keys of `const ROWS = { … }` in ui/pi.js (what data-rows may list). */
+export function statusRowNames(piJs: string): string[] {
+  const block = /\bconst ROWS\s*=\s*\{([\s\S]*?)\};/.exec(piJs)?.[1] ?? "";
+  return [...block.matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map((m) => m[1]!);
+}
+
 // ── The check ───────────────────────────────────────────────────────────────────────────────────────────
 
-const ENUMS: Record<string, { values: readonly string[]; default?: string }> = {
+type Enums = Record<string, { values: readonly string[]; default?: string }>;
+
+const ENUMS: Enums = {
   view: { values: USAGE_VIEWS, default: "auto" },
   panel: { values: PANELS.map((p) => p.id), default: "review" },
   mode: { values: ["next", "fixed"], default: "next" },
   level: { values: Object.keys(EFFORT_LABEL) },
+};
+
+/** Settings whose fixed values differ on one action's page (they replace ENUMS there). */
+const ACTION_ENUMS: Record<string, Enums> = {
+  "keep-awake": {
+    mode: { values: KEEP_AWAKE_MODES, default: "toggle" },
+    duration: { values: KEEP_AWAKE_DURATIONS, default: "0" },
+  },
 };
 
 export function checkPi(root = ROOT): CheckResult {
@@ -167,6 +186,9 @@ export function checkPi(root = ROOT): CheckResult {
   const pages: PageReport[] = [];
   const normalisers = normaliserReads(fs.readFileSync(path.join(root, "src", "actions", "settings.ts"), "utf8"));
   const piSource = fs.readFileSync(path.join(root, "src", "pi.ts"), "utf8");
+  const piJs = path.join(ui, "pi.js");
+  const statusRows = fs.existsSync(piJs) ? statusRowNames(fs.readFileSync(piJs, "utf8")) : [];
+  if (fs.existsSync(piJs) && !statusRows.length) problems.push("ui/pi.js: can't find the status box rows (const ROWS = { … })");
 
   // Manifest ↔ catalog ↔ pages
   let manifest: { Actions?: Array<{ UUID?: string; PropertyInspectorPath?: string }> } = {};
@@ -190,11 +212,20 @@ export function checkPi(root = ROOT): CheckResult {
     const html = fs.readFileSync(file, "utf8");
     const tags = scanTags(html);
     const where = rel;
+    const enums: Enums = { ...ENUMS, ...ACTION_ENUMS[a.id] };
 
     // Identity
     const body = tags.find((t) => t.name === "body");
     if (body?.attrs["data-action"] !== a.id) problems.push(`${where}: <body data-action> should be "${a.id}" (is ${JSON.stringify(body?.attrs["data-action"])})`);
-    if (!tags.some((t) => t.attrs.id === "cc-status")) problems.push(`${where}: no status box (<div id="cc-status">)`);
+    const status = tags.find((t) => t.attrs.id === "cc-status");
+    if (!status) problems.push(`${where}: no status box (<div id="cc-status">)`);
+    // pi.js drops row names it doesn't know (a typo would empty the box), so check them here. No data-rows = the
+    // Claude rows.
+    const rowsAttr = status?.attrs["data-rows"];
+    const rows = rowsAttr === undefined ? [] : rowsAttr.split(",").map((r) => r.trim());
+    if (statusRows.length) for (const r of rows) if (!statusRows.includes(r)) problems.push(`${where}: data-rows lists "${r}", which isn't a status row (ui/pi.js ROWS: ${statusRows.join(", ")})`);
+    if (a.id === "keep-awake" && status && !rows.includes("keepAwake")) problems.push(`${where}: the status box should show the keepAwake row (data-rows)`);
+    if (a.id !== "keep-awake" && rows.includes("keepAwake")) problems.push(`${where}: data-rows lists "keepAwake", but only the Keep Awake page gets KeepingYouAwake's state`);
 
     // Resources
     const headEnd = html.indexOf("</head>");
@@ -243,7 +274,7 @@ export function checkPi(root = ROOT): CheckResult {
         if (!mm) problems.push(`${where}: data-show-if="${showIf}" is not "setting=a|b" / "setting!=a"`);
         else if (!hasSetting(mm[1]!)) problems.push(`${where}: data-show-if refers to "${mm[1]}", which this page doesn't set`);
         else {
-          const allowed = ENUMS[mm[1]!]?.values;
+          const allowed = enums[mm[1]!]?.values;
           for (const v of mm[3]!.split("|")) if (allowed && !allowed.includes(v)) problems.push(`${where}: data-show-if value "${v}" is not a ${mm[1]} value`);
         }
       }
@@ -268,7 +299,7 @@ export function checkPi(root = ROOT): CheckResult {
     if (tags.some((t) => t.attrs["data-chats"] !== undefined)) datasources.push("getChats");
 
     // Fixed option lists
-    for (const [k, e] of Object.entries(ENUMS)) {
+    for (const [k, e] of Object.entries(enums)) {
       const t = settingTags.find((x) => x.attrs.setting === k);
       if (!t) continue;
       const opts = optionsOf(html, tags, t.name, "setting", k);

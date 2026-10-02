@@ -43,8 +43,17 @@ export type DictateSettings = Record<string, never>;
 export type StopSettings = Record<string, never>;
 /** Power (dial only): settings are defined by the dial implementation. */
 export type PowerSettings = Record<string, string | number | boolean | undefined>;
+export type KeepAwakeMode = "toggle" | "on" | "off";
+/**
+ * Keep Awake: what a press does (`mode`, default "toggle") and how long "on" lasts (`duration`: seconds as a string,
+ * "0" / missing = indefinitely — the PI offers KeepingYouAwake's own menu durations, KEEP_AWAKE_DURATIONS).
+ */
+export type KeepAwakeSettings = { mode?: KeepAwakeMode; duration?: string };
 
 export const USAGE_VIEWS: readonly UsageView[] = ["auto", "weekly", "5-hour", "context"];
+export const KEEP_AWAKE_MODES: readonly KeepAwakeMode[] = ["toggle", "on", "off"];
+/** The Keep Awake PI's durations (KeepingYouAwake's menu: 5, 10, 15, 30 min, 1, 2, 5 h), "0" = indefinitely. */
+export const KEEP_AWAKE_DURATIONS: readonly string[] = ["0", "300", "600", "900", "1800", "3600", "7200", "18000"];
 
 export const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
@@ -63,6 +72,17 @@ export function panelId(s: TogglePanelSettings | undefined): PanelId {
 }
 
 export const isFixed = (s: { mode?: string } | undefined): boolean => s?.mode === "fixed";
+
+export function keepAwakeMode(s: KeepAwakeSettings | undefined): KeepAwakeMode {
+  return KEEP_AWAKE_MODES.includes(s?.mode as KeepAwakeMode) ? s!.mode! : "toggle";
+}
+
+/** Seconds a Keep Awake press turns it on for; 0 = indefinitely (also for junk, negatives and fractions of a second). */
+export function keepAwakeSeconds(s: KeepAwakeSettings | undefined): number {
+  const raw: unknown = s?.duration;
+  const v = typeof raw === "number" ? raw : typeof raw === "string" && /^\s*\d+(\.\d+)?\s*$/.test(raw) ? Number(raw) : 0;
+  return Number.isFinite(v) && v >= 1 ? Math.floor(v) : 0;
+}
 
 // ── Model slots ─────────────────────────────────────────────────────────────────────────────────────────
 

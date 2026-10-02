@@ -231,6 +231,20 @@ describe("statusPayload (getStatus)", () => {
     assert.deepEqual(p.follow, { position: 3, auto: true });
   });
 
+  it("carries KeepingYouAwake's state for Keep Awake pages only", () => {
+    const p = statusPayload({
+      actionId: "keep-awake",
+      snap: snap(),
+      needsAccess: false,
+      keepAwake: { installed: true, running: true, active: true, until: NOW + 60_000, pending: true },
+    });
+    assert.deepEqual(p.keepAwake, { installed: true, running: true, active: true, until: NOW + 60_000, pending: true });
+    const off = statusPayload({ actionId: "keep-awake", snap: snap(), needsAccess: false, keepAwake: { installed: false, running: false, active: false, error: "ps failed" } });
+    assert.deepEqual(off.keepAwake, { installed: false, running: false, active: false, error: "ps failed" });
+    const on = { installed: true, running: true, active: true };
+    for (const actionId of ["speed", "activity", "power"]) assert.equal(statusPayload({ actionId, snap: snap(), needsAccess: false, keepAwake: on }).keepAwake, undefined, actionId);
+  });
+
   it("is plain JSON (what sendToPropertyInspector carries)", () => {
     const sel = chat("s");
     const p = statusPayload({ actionId: "model", snap: snap({ selected: sel, chats: [sel] }), needsAccess: true });
@@ -279,7 +293,7 @@ describe("check-pi on the real pages", () => {
   it("passes", () => {
     const { problems, pages } = checkPi();
     assert.deepEqual(problems, []);
-    assert.equal(pages.length, 13);
+    assert.equal(pages.length, 14);
     const keys = Object.fromEntries(pages.map((p) => [p.id, p.settings]));
     assert.deepEqual(keys, {
       activity: ["position"],
@@ -294,6 +308,7 @@ describe("check-pi on the real pages", () => {
       speed: [],
       usage: ["view"],
       "toggle-panel": ["panel"],
+      "keep-awake": ["duration", "mode"],
       power: [],
     });
   });
@@ -316,6 +331,13 @@ describe("check-pi catches mistakes", () => {
     edit("send-prompt.html", (s) => s.replace(`setting="prompt"`, `setting="message"`));
     edit("model.html", (s) => s.replace(`data-show-if="mode=fixed"`, `data-show-if="kind=fixed"`));
     edit("usage.html", (s) => s.replace(`<option value="context">Context</option>`, ""));
+    edit("keep-awake.html", (s) =>
+      s
+        .replace(`<option value="off">Turn off</option>`, `<option value="fixed">Fixed</option>`)
+        .replace(`data-show-if="mode!=off"`, `data-show-if="mode!=never"`)
+        .replace(`data-rows="keepAwake,result"`, `data-rows="keepawake,result"`),
+    );
+    edit("dictate.html", (s) => s.replace(`<div id="cc-status">`, `<div id="cc-status" data-rows="app,keepAwake,result">`));
     edit("pi.css", (s) => `@import url("https://fonts.example.com/a.css");\n${s}`);
     edit("pi.js", (s) => `${s}\nfetch("/x");\n`);
     fs.rmSync(path.join(ui, "stop.html"));
@@ -327,6 +349,11 @@ describe("check-pi catches mistakes", () => {
     has(/ui\/send-prompt\.html: setting "message" is not read by src\/actions\/send-prompt\.ts/);
     has(/ui\/model\.html: data-show-if refers to "kind"/);
     has(/ui\/usage\.html: options for "view" should be .*missing context/);
+    has(/ui\/keep-awake\.html: options for "mode" should be toggle, on, off \(missing off\) \(unknown fixed\)/);
+    has(/ui\/keep-awake\.html: data-show-if value "never" is not a mode value/);
+    has(/ui\/keep-awake\.html: data-rows lists "keepawake", which isn't a status row \(ui\/pi\.js ROWS: app, access, chat, keepAwake, result\)/);
+    has(/ui\/keep-awake\.html: the status box should show the keepAwake row/);
+    has(/ui\/dictate\.html: data-rows lists "keepAwake", but only the Keep Awake page/);
     has(/ui\/pi\.css: refers to https:\/\/fonts\.example\.com/);
     has(/ui\/pi\.js: uses fetch\(/);
     has(/ui\/stop\.html: missing/);

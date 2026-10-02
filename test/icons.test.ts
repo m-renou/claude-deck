@@ -29,6 +29,7 @@ const REQUIRED = [
   "panel-side-chat",
   "warning",
   "spark",
+  "cup",
 ];
 
 describe("icons", () => {
@@ -60,7 +61,7 @@ describe("icons", () => {
     assert.match(icon("check", { x: 0, y: 0, size: 24, color: "#fff", strokeWidth: 3 }), /stroke-width="3"/);
   });
 
-  it("has solid variants for send, stop, bolt and spark", () => {
+  it("has solid variants for send, stop, bolt, spark and cup", () => {
     const send = icon("send", { x: 0, y: 0, size: 24, color: "#FFFFFF", knockout: "#123456" });
     assert.match(send, /fill="#FFFFFF"/);
     assert.match(send, /stroke="#123456"/);
@@ -69,6 +70,12 @@ describe("icons", () => {
     assert.match(icon("bolt", { x: 0, y: 0, size: 24, color: "#D97757", fill: true }), /fill="#D97757"/);
     assert.match(icon("bolt", { x: 0, y: 0, size: 24, color: "#FFFFFF" }), /fill="none"/);
     assert.match(icon("spark", { x: 0, y: 0, size: 24, color: "#FFFFFF" }), /fill="#FFFFFF"/);
+    // Cup: outline by default; the solid mug adds steam.
+    const cup = icon("cup", { x: 0, y: 0, size: 24, color: "#FFFFFF" });
+    assert.doesNotMatch(cup, /fill="#FFFFFF"|Q/);
+    const full = icon("cup", { x: 0, y: 0, size: 24, color: "#D97757", fill: true });
+    assert.match(full, /fill="#D97757"/);
+    assert.equal((full.match(/Q/g) ?? []).length, 3);
   });
 
   it("builds an 8-ray spark inside its radius", () => {

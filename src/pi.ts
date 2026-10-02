@@ -7,7 +7,8 @@
 //
 // Requests (see src/pi-core.ts for the payloads): the sdpi-components datasources getChats / getSkills / getModels /
 // getModelSlots / getFolders, and getStatus. Replies go to the PI that asked, and only while it is the visible one.
-// While a PI is open, hub changes and key results are pushed to it (throttled, and only when what it shows changed).
+// While a PI is open, hub (and KeepingYouAwake) changes and key results are pushed to it (throttled, and only when
+// what it shows changed).
 
 import os from "node:os";
 import streamDeck from "@elgato/streamdeck";
@@ -18,6 +19,7 @@ import { PLUGIN_UUID } from "./catalog.ts";
 import { listSkills } from "./claude/extras.ts";
 import { hub } from "./hub.ts";
 import { chatItems, folderItems, modelItems, modelSlotItems, type PiEvent, type PiStatus, piRequest, skillItems, statusPayload } from "./pi-core.ts";
+import { keepAwake } from "./system/keep-awake.ts";
 
 const PREFIX = `${PLUGIN_UUID}.`;
 /** A PI can ask before the plugin has processed its propertyInspectorDidAppear; replies wait this long for it. */
@@ -95,6 +97,7 @@ export function buildStatus(actionId: string, contextId: string): PiStatus {
     result: inst?.lastResult ?? lastResultFor(contextId),
     controller: inst?.controller,
     follow: actionId === "activity" ? followOf(contextId) : undefined,
+    keepAwake: keepAwake.state, // statusPayload passes it on to Keep Awake pages only
   });
 }
 
@@ -173,6 +176,7 @@ function schedulePush(): void {
 }
 
 hub.on("change", schedulePush);
+keepAwake.on("change", schedulePush);
 streamDeck.ui.onDidAppear((ev) => {
   sentFor = ev.action.id;
   sent.clear();

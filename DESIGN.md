@@ -16,7 +16,8 @@ Key canvas 144 × 144 (SVG, rendered with `data:image/svg+xml`). The physical ke
   (Lucide-like). Two placements:
   * **corner icon** top-left at (16, 16), ~30 px — used by Activity, Send Prompt, Steer, Run Skill, Model, Effort.
   * **hero icon** centred, ~64 px — used by New Chat (compose: square + pencil), Dictate (microphone), Stop (filled
-    white circle Ø ~92 with a black rounded square inside), Speed (lightning bolt), Toggle Panel (panel outline).
+    white circle Ø ~92 with a black rounded square inside), Speed (lightning bolt), Toggle Panel (panel outline),
+    Keep Awake (coffee mug).
 * **Accent**: Codex uses purple. Claude uses its coral: `#D97757` (light `#E8A27F`, dark `#C15F3C`). Effort/Speed
   "active" colour = accent; the effort slider track is a gradient `#F2C4A8 → #D97757`.
 * **Status colours** (identical to Codex):
@@ -46,6 +47,7 @@ Key canvas 144 × 144 (SVG, rendered with `data:image/svg+xml`). The physical ke
 | Speed | Hero lightning bolt: accent filled when Fast is on, white outline when off, dim when the model has no fast mode | ⌘⌥F |
 | Usage | “Weekly” / “5-hour” / “Context” label (20 px), big percentage (36 px bold), two grey lines (e.g. “779k / 1M”, “as of 12:39”), vertical bar on the right (grey track, white fill from the bottom) | Cycles the key's view. Each key shows its own view: Weekly / 5-hour show the latest sample the app recorded (any age, with its time) and never fall back to Context; Auto shows Weekly when a sample from the last 24 h exists, else Context |
 | Toggle Panel | Hero panel icon for the chosen panel (Review = ± document, Terminal = `>_` window, Browser = globe, Files = folders, Side chat = chat bubble with +) | The panel's shortcut (⌘⇧D, ⌃\`, ⌘⇧B, ⌘⇧F, ⌘;) |
+| Keep Awake (extra, not in Codex) | Hero coffee mug (KeepingYouAwake's symbol): accent filled with three wavy steam lines while the Mac is kept awake, white outline when off, dim when KeepingYouAwake isn't installed. A timed session shows its time left top-right in the time style (“45s”, “12m”, “1h 5m”), with the mug 7 px lower so the steam clears it | Toggles KeepingYouAwake on / off, or always turns it on / off (PI), on for the PI's duration (indefinitely, 5 min … 5 h). The key flips at once and is confirmed by re-reading KeepingYouAwake's state (⚠ if it doesn't follow within ~4 s, or isn't installed) |
 
 ## Dials (Stream Deck +, 200 × 100 touch strip per dial)
 
@@ -80,6 +82,10 @@ Key canvas 144 × 144 (SVG, rendered with `data:image/svg+xml`). The physical ke
   happen within a few seconds the key shows ⚠ and the PI says why.
 * Prompt delivery: Return is only pressed after the pasted text was read back from the located prompt box and while
   that box itself has keyboard focus. The clipboard is saved with every item and type and put back afterwards.
+* Keep Awake drives the KeepingYouAwake app (not Claude) through its URL scheme (`keepingyouawake:///activate[?seconds=N]`,
+  `…/deactivate`, opened with `open -g`; never `toggle` — the press reads the state and picks the command) and reads
+  its state from the `/usr/bin/caffeinate` child KeepingYouAwake runs while active (`ps`; `-t` gives a timed session's
+  end), polling only while a Keep Awake key is visible.
 * Every switch of the app (Activity, New Chat, a key that opens its chat) is a queued job that includes the app's
   switch time, so the next key's keystrokes can't reach the chat shown before. Model, Effort, Stop and panel keys never
   wait for the background prompt-box search.
