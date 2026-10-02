@@ -1,0 +1,358 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"UUID": "com.local.claudecode",
+	"Name": "Claude Code",
+	"Version": "1.0.0.0",
+	"Author": "Claude Code for Stream Deck",
+	"Description": "Keep Claude Code within reach while you work: follow active chats, send prompts, steer running tasks, stop work, and switch model, effort and speed in the Claude desktop app — straight from Stream Deck.",
+	"Category": "Claude Code",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/marketplace",
+	"CodePath": "bin/plugin.js",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.6"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "13"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"ApplicationsToMonitor": {
+		"mac": [
+			"com.anthropic.claudefordesktop"
+		]
+	},
+	"Profiles": [
+		{
+			"Name": "profiles/Claude Code (0)",
+			"DeviceType": 0,
+			"Readonly": false,
+			"DontAutoSwitchWhenInstalled": true,
+			"AutoInstall": true
+		},
+		{
+			"Name": "profiles/Claude Code Mini (1)",
+			"DeviceType": 1,
+			"Readonly": false,
+			"DontAutoSwitchWhenInstalled": true,
+			"AutoInstall": true
+		},
+		{
+			"Name": "profiles/Claude Code Neo (9)",
+			"DeviceType": 9,
+			"Readonly": false,
+			"DontAutoSwitchWhenInstalled": true,
+			"AutoInstall": true
+		},
+		{
+			"Name": "profiles/Claude Code Plus (7)",
+			"DeviceType": 7,
+			"Readonly": false,
+			"DontAutoSwitchWhenInstalled": true,
+			"AutoInstall": true
+		},
+		{
+			"Name": "profiles/Claude Code XL (2)",
+			"DeviceType": 2,
+			"Readonly": false,
+			"DontAutoSwitchWhenInstalled": true,
+			"AutoInstall": true
+		}
+	],
+	"Actions": [
+		{
+			"UUID": "com.local.claudecode.activity",
+			"Name": "Activity",
+			"Tooltip": "Follow a chat: its status (working, waiting for input, ready) and latest activity. Press to open it in the Claude app.",
+			"Icon": "imgs/actions/chat",
+			"Controllers": [
+				"Keypad",
+				"Encoder",
+				"Neo"
+			],
+			"PropertyInspectorPath": "ui/activity.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/keys/activity",
+					"ShowTitle": false
+				}
+			],
+			"Encoder": {
+				"Icon": "imgs/dials/activity",
+				"layout": "layouts/activity-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Browse chats",
+					"Push": "Open chat",
+					"Touch": "Open chat"
+				}
+			}
+		},
+		{
+			"UUID": "com.local.claudecode.new-chat",
+			"Name": "New Chat",
+			"Tooltip": "Start a new Claude Code chat in the Claude desktop app.",
+			"Icon": "imgs/actions/compose",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/new-chat.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/new-chat",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.dictate",
+			"Name": "Dictate",
+			"Tooltip": "Dictate a prompt into the selected chat (macOS Dictation).",
+			"Icon": "imgs/actions/mic",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/dictate.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/dictate",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.send-prompt",
+			"Name": "Send Prompt",
+			"Tooltip": "Send a configured prompt to the selected chat.",
+			"Icon": "imgs/actions/send",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/send-prompt.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/send-prompt",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.steer",
+			"Name": "Steer",
+			"Tooltip": "Give additional direction while the selected chat is working.",
+			"Icon": "imgs/actions/steer",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/steer.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/steer",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.run-skill",
+			"Name": "Run Skill",
+			"Tooltip": "Run a configured skill in the selected chat.",
+			"Icon": "imgs/actions/skill",
+			"Controllers": [
+				"Keypad",
+				"Encoder"
+			],
+			"PropertyInspectorPath": "ui/run-skill.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/run-skill",
+					"ShowTitle": false
+				}
+			],
+			"Encoder": {
+				"Icon": "imgs/dials/run-skill",
+				"layout": "layouts/run-skill-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Browse skills",
+					"Push": "Run skill",
+					"Touch": "Run skill"
+				}
+			}
+		},
+		{
+			"UUID": "com.local.claudecode.stop",
+			"Name": "Stop",
+			"Tooltip": "Stop active work in the selected chat.",
+			"Icon": "imgs/actions/stop",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/stop.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/stop",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.model",
+			"Name": "Model",
+			"Tooltip": "Choose which model the selected chat uses.",
+			"Icon": "imgs/actions/model",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/model.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/model",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.effort",
+			"Name": "Effort",
+			"Tooltip": "Adjust reasoning effort for the selected chat (including Ultracode).",
+			"Icon": "imgs/actions/effort",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/effort.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/effort",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.speed",
+			"Name": "Speed",
+			"Tooltip": "Switch between Standard and Fast when the model offers fast mode.",
+			"Icon": "imgs/actions/bolt",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/speed.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/speed",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.usage",
+			"Name": "Usage",
+			"Tooltip": "View usage: plan limits when the Claude app has recorded them, otherwise the selected chat's context window.",
+			"Icon": "imgs/actions/usage",
+			"Controllers": [
+				"Keypad",
+				"Encoder",
+				"Neo"
+			],
+			"PropertyInspectorPath": "ui/usage.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/usage",
+					"ShowTitle": false
+				}
+			],
+			"Encoder": {
+				"Icon": "imgs/dials/usage",
+				"layout": "layouts/usage-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Switch view",
+					"Push": "Refresh",
+					"Touch": "Refresh"
+				}
+			}
+		},
+		{
+			"UUID": "com.local.claudecode.toggle-panel",
+			"Name": "Toggle Panel",
+			"Tooltip": "Show or hide a Claude panel: Review (diff), Terminal, Browser, Files or Side chat.",
+			"Icon": "imgs/actions/panel-bottom",
+			"Controllers": [
+				"Keypad"
+			],
+			"PropertyInspectorPath": "ui/toggle-panel.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/toggle-panel",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"UUID": "com.local.claudecode.power",
+			"Name": "Power",
+			"Tooltip": "Move between model and reasoning configurations from a single dial.",
+			"Icon": "imgs/actions/bolt",
+			"Controllers": [
+				"Encoder"
+			],
+			"PropertyInspectorPath": "ui/power.html",
+			"DisableAutomaticStates": true,
+			"UserTitleEnabled": false,
+			"SupportedInMultiActions": true,
+			"States": [
+				{
+					"Image": "imgs/keys/power",
+					"ShowTitle": false
+				}
+			],
+			"Encoder": {
+				"Icon": "imgs/dials/power",
+				"layout": "layouts/power-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Faster ↔ Smarter",
+					"Push": "Apply",
+					"Touch": "Apply"
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,293 @@
+/* Claude Code Property Inspectors.
+   sdpi-components draws the settings in Elgato's own Property Inspector look; this file adds the help text, the live
+   chat list (drawn like the Activity keys: status tile colours, the keys' icons, white outline = open in Claude) and
+   the status box, aligned to sdpi's 95 px label / 241 px content grid. */
+
+:root {
+  /* sdpi-components tokens */
+  --cc-bg: #2d2d2d;
+  --cc-input: #3d3d3d;
+  --cc-label: #969696;
+  --cc-text: #d8d8d8;
+  --cc-font: "Segoe UI", Arial, Roboto, Helvetica, sans-serif;
+  --cc-label-w: 95px;
+  --cc-content-w: 241px;
+  /* the keys' palette (src/render/kit.ts) */
+  --cc-key-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --cc-white: #ffffff;
+  --cc-grey: #9b9b9f;
+  --cc-accent: #d97757;
+  --cc-green: #34c759;
+  --cc-red: #ff5b5b;
+  --cc-orange: #ff8a3d;
+  --cc-warn: #ffb224;
+}
+
+html,
+body {
+  background-color: var(--cc-bg);
+}
+
+body {
+  margin: 0;
+  padding: 8px 0 14px 0;
+  color: var(--cc-text);
+  font-family: var(--cc-font);
+  font-size: 9pt;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+sdpi-item {
+  display: block;
+}
+
+/* Help line under an input: sits in the content column. */
+.cc-hint {
+  box-sizing: border-box;
+  max-width: var(--cc-content-w);
+  margin: -5px 0 10px var(--cc-label-w);
+  color: var(--cc-label);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cc-hint b {
+  color: var(--cc-text);
+  font-weight: 600;
+}
+
+kbd {
+  font-family: var(--cc-font);
+  color: var(--cc-text);
+}
+
+/* Label / value rows (explanations and the status box) on the sdpi grid. */
+.cc-row {
+  display: grid;
+  grid-template-columns: var(--cc-label-w) var(--cc-content-w);
+  align-items: start;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.cc-k {
+  color: var(--cc-label);
+  text-align: right;
+  padding: 0 11px 0 0;
+  white-space: nowrap;
+}
+
+.cc-k::after {
+  content: ":";
+}
+
+.cc-v {
+  min-width: 0;
+  color: var(--cc-text);
+  overflow-wrap: anywhere;
+}
+
+.cc-info {
+  margin: 2px 0 10px 0;
+}
+
+.cc-info .cc-v {
+  font-size: 11px;
+  line-height: 1.45;
+  padding-top: 1px;
+}
+
+.cc-sub {
+  display: block;
+  color: var(--cc-label);
+  font-size: 11px;
+}
+
+/* ── Status box ───────────────────────────────────────────────────────────────────────────────────────── */
+
+.cc-status {
+  margin: 12px 0 0 0;
+  padding: 10px 0 2px 0;
+  border-top: 1px solid var(--cc-input);
+  max-width: calc(var(--cc-label-w) + var(--cc-content-w));
+}
+
+.cc-status .cc-v {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.cc-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 6px 1px 1px;
+  border-radius: 50%;
+  background: var(--cc-label);
+  vertical-align: middle;
+}
+
+.cc-dot.is-good {
+  background: var(--cc-green);
+}
+
+.cc-dot.is-bad {
+  background: var(--cc-red);
+}
+
+.cc-fix {
+  display: block;
+  margin-top: 2px;
+  color: var(--cc-text);
+  font-size: 11px;
+}
+
+.cc-ico {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin: 0 5px 1px 0;
+  vertical-align: middle;
+}
+
+.cc-line {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cc-ok {
+  color: var(--cc-green);
+}
+
+.cc-alert {
+  color: var(--cc-warn);
+}
+
+.cc-mark {
+  display: inline-block;
+  width: 17px;
+  font-weight: 700;
+}
+
+/* ── Chat list (Activity): mini Activity keys ─────────────────────────────────────────────────────────── */
+
+.cc-chats {
+  width: var(--cc-content-w);
+  max-height: 228px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.cc-chats::-webkit-scrollbar {
+  width: 5px;
+}
+
+.cc-chats::-webkit-scrollbar-thumb {
+  background-color: #666;
+  border-radius: 5px;
+}
+
+.cc-chat {
+  --tile: #1c1c1e;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 28px;
+  margin: 0 0 3px 0;
+  padding: 0 8px 0 6px;
+  border-radius: 6px;
+  background: var(--tile);
+  font-family: var(--cc-key-font);
+}
+
+.cc-chat.is-selected {
+  box-shadow: inset 0 0 0 2px var(--cc-white);
+}
+
+.cc-chat .cc-ico {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0 6px 0 0;
+}
+
+.cc-pos {
+  flex: 0 0 auto;
+  min-width: 16px;
+  height: 16px;
+  margin: 0 6px 0 0;
+  border-radius: 8px;
+  color: var(--cc-grey);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.cc-chat.is-mine .cc-pos {
+  background: var(--cc-accent);
+  color: var(--cc-white);
+}
+
+/* Clipped like the keys (no ellipsis): the title fades out at the right edge. */
+.cc-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--cc-white);
+  font-size: 12px;
+  font-weight: 600;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+
+.cc-meta {
+  flex: 0 0 auto;
+  margin-left: 6px;
+  color: var(--cc-grey);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cc-add {
+  color: var(--cc-green);
+}
+
+.cc-del {
+  color: var(--cc-red);
+  margin-left: 3px;
+}
+
+.cc-empty {
+  padding: 6px 0;
+  color: var(--cc-label);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cc-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin: 0 3px 1px 0;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.cc-swatch.is-mine {
+  background: var(--cc-accent);
+}
+
+.cc-swatch.is-selected {
+  box-shadow: inset 0 0 0 1.5px var(--cc-white);
+}

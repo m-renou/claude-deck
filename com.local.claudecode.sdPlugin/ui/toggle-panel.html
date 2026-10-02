@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Toggle Panel</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="toggle-panel">
+  <sdpi-item label="Panel">
+    <sdpi-select setting="panel" default="review">
+      <option value="review">Review (⌘⇧D)</option>
+      <option value="terminal">Terminal (⌃`)</option>
+      <option value="browser">Browser (⌘⇧B)</option>
+      <option value="files">Files (⌘⇧F)</option>
+      <option value="sideChat">Side chat (⌘;)</option>
+    </sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint">Shows or hides the panel in the selected chat with the app's own shortcut.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

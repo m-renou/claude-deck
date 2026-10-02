@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Steer</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="steer">
+  <sdpi-item label="Text">
+    <sdpi-textarea setting="text" rows="4"></sdpi-textarea>
+  </sdpi-item>
+  <p class="cc-hint">Sent to the selected chat. While Claude works, the app takes it as direction without stopping the turn.</p>
+  <p class="cc-hint">Leave empty to send what you've typed in Claude's prompt box.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

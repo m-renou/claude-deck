@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · New Chat</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="new-chat">
+  <sdpi-item label="Folder">
+    <sdpi-textfield setting="folder" placeholder="Optional"></sdpi-textfield>
+  </sdpi-item>
+  <sdpi-item>
+    <sdpi-select data-copy-to="folder" datasource="getFolders" hot-reload show-refresh loading="Loading folders…" placeholder="Recent chat folders…"></sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint">Where the new chat starts. Empty: the Claude app's default.</p>
+  <sdpi-item label="Prompt">
+    <sdpi-textarea setting="prompt" rows="3"></sdpi-textarea>
+  </sdpi-item>
+  <p class="cc-hint">Optional. Pre-filled in the new chat's prompt box, not sent: you press Return.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

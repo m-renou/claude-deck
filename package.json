@@ -1,0 +1,33 @@
+{
+  "name": "claude-code-streamdeck",
+  "version": "0.1.0",
+  "description": "Stream Deck plugin for the Claude desktop app (Claude Code): follow chats, send prompts, steer, stop, switch model / effort / speed, usage and panels.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.local.claudecode\"",
+    "gen": "node scripts/gen-icons.ts && node scripts/gen-profiles.ts && node scripts/gen-manifest.ts",
+    "gen-profiles": "node scripts/gen-profiles.ts",
+    "validate": "streamdeck validate com.local.claudecode.sdPlugin",
+    "check-pi": "node scripts/check-pi.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
+    "pack": "mkdir -p ../dist && streamdeck pack com.local.claudecode.sdPlugin --force --no-update-check -o ../dist"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.10.1",
+    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-node-resolve": "^15.2.2",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.1.0",
+    "@tsconfig/node20": "^20.1.2",
+    "@types/node": "^24.19.0",
+    "rollup": "^4.0.2",
+    "tslib": "^2.6.2",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^3.0.1"
+  }
+}

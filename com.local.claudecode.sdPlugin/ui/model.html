@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Model</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="model">
+  <sdpi-item label="Mode">
+    <sdpi-select setting="mode" default="next">
+      <option value="next">Cycle through slots</option>
+      <option value="fixed">One model</option>
+    </sdpi-select>
+  </sdpi-item>
+  <div data-show-if="mode!=fixed">
+    <sdpi-item label="Slot 1">
+      <sdpi-select setting="slot1" default="claude-fable-5-1" datasource="getModelSlots" hot-reload loading="Loading models…"></sdpi-select>
+    </sdpi-item>
+    <sdpi-item label="Slot 2">
+      <sdpi-select setting="slot2" default="claude-opus-5-5" datasource="getModelSlots" hot-reload loading="Loading models…"></sdpi-select>
+    </sdpi-item>
+    <sdpi-item label="Slot 3">
+      <sdpi-select setting="slot3" default="none" datasource="getModelSlots" hot-reload loading="Loading models…"></sdpi-select>
+    </sdpi-item>
+    <sdpi-item label="Slot 4">
+      <sdpi-select setting="slot4" default="none" datasource="getModelSlots" hot-reload loading="Loading models…"></sdpi-select>
+    </sdpi-item>
+    <sdpi-textfield setting="slots" data-array-of="slot1,slot2,slot3,slot4" hidden></sdpi-textfield>
+    <p class="cc-hint">Press cycles through these models in order. The dots on the key are the slots.</p>
+  </div>
+  <sdpi-item label="Model" data-show-if="mode=fixed">
+    <sdpi-select setting="model" datasource="getModels" hot-reload show-refresh loading="Loading models…" placeholder="Choose a model"></sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint" data-show-if="mode=fixed">Press always picks this model.</p>
+  <p class="cc-hint">Picked in the app's model menu (<kbd>⌘⇧I</kbd>) for the selected chat. The key shows ⚠ if the chat doesn't confirm the change.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

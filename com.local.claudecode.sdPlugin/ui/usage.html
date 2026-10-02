@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Usage</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="usage">
+  <sdpi-item label="View">
+    <sdpi-select setting="view" default="auto">
+      <option value="auto">Auto</option>
+      <option value="weekly">Weekly</option>
+      <option value="5-hour">5-hour</option>
+      <option value="context">Context</option>
+    </sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint">Weekly / 5-hour: your plan's limits as the Claude app last recorded them. Context: the selected chat's context window. Auto: the plan's limit when there is a recent one, else the context window.</p>
+  <p class="cc-hint">Each key shows its own view; pressing it switches to the next one.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

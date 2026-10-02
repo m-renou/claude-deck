@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Run Skill</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="run-skill">
+  <sdpi-item label="Skill">
+    <sdpi-select data-copy-to="skill" data-strip-slash datasource="getSkills" hot-reload show-refresh loading="Loading skills…" placeholder="Choose a skill…"></sdpi-select>
+  </sdpi-item>
+  <sdpi-item>
+    <sdpi-textfield setting="skill" placeholder="or type a name, e.g. code-review"></sdpi-textfield>
+  </sdpi-item>
+  <sdpi-item label="Arguments">
+    <sdpi-textfield setting="args" placeholder="Optional"></sdpi-textfield>
+  </sdpi-item>
+  <p class="cc-hint">Types <b>/skill</b> and the arguments in the selected chat, then presses Return.</p>
+  <p class="cc-hint" data-controller="Encoder">On a dial: turn to browse skills, push or tap to run one.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

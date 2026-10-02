@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Activity</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="activity">
+  <sdpi-item label="Position" data-controller="Keypad">
+    <sdpi-select setting="position" value-type="number" default="0">
+      <option value="0">Auto</option>
+      <option value="1">1 · most recent</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12">12</option>
+    </sdpi-select>
+  </sdpi-item>
+  <p class="cc-hint" data-controller="Keypad">Auto: Activity keys take the chats in key order, newest first, after any pinned ones.</p>
+  <p class="cc-hint" data-controller="Encoder">Turn the dial to browse chats, push or tap to open one.</p>
+  <p class="cc-hint" data-controller="Neo">Shows the selected chat. Tap to move through your chats.</p>
+  <sdpi-item label="Chats">
+    <ol class="cc-chats" data-chats><li class="cc-empty">Loading chats…</li></ol>
+  </sdpi-item>
+  <p class="cc-hint" data-chats-hint></p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code · Effort</title>
+  <link rel="stylesheet" href="./pi.css" />
+  <script src="./vendor/sdpi-components.js"></script>
+</head>
+<body data-action="effort">
+  <sdpi-item label="Mode">
+    <sdpi-select setting="mode" default="next">
+      <option value="next">Cycle</option>
+      <option value="fixed">Fixed level</option>
+    </sdpi-select>
+  </sdpi-item>
+  <sdpi-item label="Level" data-show-if="mode=fixed">
+    <sdpi-select setting="level" placeholder="Choose a level">
+      <option value="low">Low</option>
+      <option value="medium">Medium</option>
+      <option value="high">High</option>
+      <option value="xhigh">Extra</option>
+      <option value="max">Max</option>
+      <option value="ultracode">Ultra</option>
+    </sdpi-select>
+  </sdpi-item>
+  <sdpi-item label="Levels to cycle" data-show-if="mode!=fixed">
+    <sdpi-checkbox-list data-list-for="cycle" columns="3">
+      <option value="low">Low</option>
+      <option value="medium">Medium</option>
+      <option value="high">High</option>
+      <option value="xhigh">Extra</option>
+      <option value="max">Max</option>
+      <option value="ultracode">Ultra</option>
+    </sdpi-checkbox-list>
+    <sdpi-textfield setting="cycle" default="low, medium, high, xhigh, max, ultracode" hidden></sdpi-textfield>
+  </sdpi-item>
+  <p class="cc-hint" data-show-if="mode!=fixed">A press moves to the next ticked level, in this order. At least one stays ticked.</p>
+  <p class="cc-hint">Moves the app's effort slider (<kbd>⌘⇧E</kbd>) for the selected chat. Ultra is Ultracode. Levels the chat's model doesn't offer are skipped; Haiku has no effort setting.</p>
+  <div id="cc-status"></div>
+  <script src="./pi.js"></script>
+</body>
+</html>
