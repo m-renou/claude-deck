@@ -1,7 +1,7 @@
 /* Claude Code Property Inspectors.
    sdpi-components draws the settings in Elgato's own Property Inspector look; this file adds the help text, the live
-   chat list (drawn like the Activity keys: status tile colours, the keys' icons, white outline = open in Claude) and
-   the status box, aligned to sdpi's 95 px label / 241 px content grid. */
+   chat list (drawn like the Activity keys: status tile colours, the keys' icons, white outline = open in Claude), the
+   Usage page's live-usage section and the status box, aligned to sdpi's 95 px label / 241 px content grid. */
 
 :root {
   /* sdpi-components tokens */
@@ -106,6 +106,62 @@ kbd {
   display: block;
   color: var(--cc-label);
   font-size: 11px;
+}
+
+/* ── A titled section (Usage: live usage) ───────────────────────────────────────────────────────────────── */
+
+.cc-section {
+  margin: 12px 0 0 0;
+  padding: 10px 0 0 0;
+  border-top: 1px solid var(--cc-input);
+  max-width: calc(var(--cc-label-w) + var(--cc-content-w));
+}
+
+/* Title in the content column, like the help lines under it. */
+.cc-heading {
+  margin: 0 0 10px var(--cc-label-w);
+  color: var(--cc-text);
+  font-size: 9pt;
+  font-weight: 600;
+}
+
+.cc-section .cc-hint:empty {
+  display: none;
+}
+
+/* Signed out: the sign-in command to copy, in the content column under the status line. */
+.cc-login {
+  box-sizing: border-box;
+  max-width: calc(var(--cc-label-w) + var(--cc-content-w));
+  margin: -2px 0 10px 0;
+  padding: 0 0 0 var(--cc-label-w);
+}
+
+.cc-login sdpi-button {
+  display: inline-block;
+  margin: 6px 0 0 0;
+}
+
+/* A command to copy into Terminal: selectable as a whole, long paths wrap anywhere. */
+.cc-cmd {
+  display: block;
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: var(--cc-input);
+  color: var(--cc-text);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.cc-note {
+  margin: 6px 0 0 0;
+  color: var(--cc-label);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* ── Status box ───────────────────────────────────────────────────────────────────────────────────────── */

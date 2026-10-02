@@ -1,5 +1,6 @@
 // State hub: merges the Claude app's chat files with live process status, picks the selected chat, computes
-// usage, and notifies actions when anything visible changed. Everything is local and read-only.
+// usage, and notifies actions when anything visible changed. Everything is local and read-only. Live usage comes from
+// src/claude/usage-live.ts (Claude Code's own usage request, every minute); the hub only takes its latest sample.
 //
 // Optimistic values: a Model / Effort press shows its new value at once (setPending) — the snapshot overlays it on the
 // chat until the chat's session file, written after the press, reports the same value, or the TTL runs out. Cycling
@@ -13,6 +14,7 @@ import { loadModels, modelInfo } from "./claude/catalog.ts";
 import { diffStat } from "./claude/extras.ts";
 import { LiveRoster, type LiveSession } from "./claude/live.ts";
 import { computeUsage, transcriptFor, type UsageView } from "./claude/usage.ts";
+import { usageLive } from "./claude/usage-live.ts";
 import fs from "node:fs";
 import type { Chat, ChatStatus, Snapshot, Usage } from "./types.ts";
 
@@ -96,6 +98,8 @@ export class Hub extends EventEmitter {
   private live = new Map<string, LiveSession>();
   private transcripts = new Map<string, string | undefined>();
   private warmTimer: NodeJS.Timeout | undefined;
+  /** New live usage (or its status): recompute at once. */
+  private readonly onLiveUsage = (): void => this.refresh(true);
 
   /** The app stamps lastActivityAt when a turn ends; while a chat works its transcript is the live activity clock. */
   private transcriptMtime(cliSessionId: string): number {
@@ -133,11 +137,13 @@ export class Hub extends EventEmitter {
     every(30_000, () => this.refresh(true));
     // Keep the prompt box's location fresh (a quick check when it's still valid).
     every(10 * 60_000, () => this.warmSoon(0, true));
+    usageLive.on("change", this.onLiveUsage);
   }
 
   stop(): void {
     for (const t of this.timers) clearInterval(t);
     this.timers = [];
+    usageLive.off("change", this.onLiveUsage);
     clearTimeout(this.warmTimer);
     this.warmTimer = undefined;
     for (const p of this.pending.values()) clearTimeout(p.timer);
@@ -207,7 +213,7 @@ export class Hub extends EventEmitter {
   usageFor(view: UsageView): Usage {
     let u = this.usageByView.get(view);
     if (!u) {
-      u = computeUsage(this.snapshot.selected, view);
+      u = computeUsage(this.snapshot.selected, view, Date.now(), usageLive.state.sample);
       this.usageByView.set(view, u);
     }
     return u;
@@ -322,7 +328,7 @@ export class Hub extends EventEmitter {
       if (p && (!focused || this.picked.at >= focused.lastFocusedAt)) selected = p;
     }
     this.usageByView.clear();
-    const usage: Usage = computeUsage(selected, this.usagePref);
+    const usage: Usage = computeUsage(selected, this.usagePref, now, usageLive.state.sample);
     this.usageByView.set(this.usagePref, usage);
     this.snapshot = {
       ...this.snapshot,

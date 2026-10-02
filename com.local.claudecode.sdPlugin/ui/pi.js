@@ -17,11 +17,14 @@
 //   • [data-chats]                                the live chat list (Activity), from the plugin's getChats replies
 //   • #cc-status                                  the status box: Claude app, Accessibility, selected chat, last result
 //                                                 (data-rows="keepAwake,result": KeepingYouAwake instead of the Claude rows)
+//   • [data-live-usage]                           the Usage page's live usage: its status line #cc-live and, while
+//                                                 Claude Code is signed out, #cc-login with the sign-in command to copy
+//                                                 (#cc-login-cmd / #cc-login-copy)
 //
 // Plugin messages: sends {event:"getStatus"} / {event:"getChats"} (on load, then every 4 s while visible); the plugin
 // answers and also pushes {event:"status"} / {event:"getChats"} when something changes.
 // Privacy: everything goes through SDPIComponents.streamDeckClient to the local Stream Deck app — no fetch, no remote
-// resources. Text from the plugin is always inserted as text (never parsed as HTML).
+// resources. Text from the plugin is always inserted as text (never parsed as HTML). No page takes a password or token.
 
 (() => {
   "use strict";
@@ -269,6 +272,64 @@
     fill(chatsHint, parts);
   }
 
+  // ── Live usage (Usage page) ───────────────────────────────────────────────────────────────────────────────
+
+  const liveCell = $("#cc-live");
+  const loginBox = $("#cc-login");
+  const loginCmd = $("#cc-login-cmd");
+  const loginCopy = $("#cc-login-copy");
+
+  /** Copy the sign-in command. It is selected first, so ⌘C works where the page may not write the clipboard. */
+  let copyTimer = 0;
+  function copyLogin() {
+    if (!loginCmd || !loginCopy) return;
+    const label = (text) => {
+      clearTimeout(copyTimer);
+      loginCopy.textContent = text;
+      copyTimer = setTimeout(() => (loginCopy.textContent = "Copy command"), 2500);
+    };
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(loginCmd);
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+    if (copied) return label("Copied");
+    const cb = navigator.clipboard;
+    if (cb && typeof cb.writeText === "function") {
+      cb.writeText(str(loginCmd.textContent)).then(
+        () => label("Copied"),
+        () => label("Press ⌘C"),
+      );
+    } else label("Press ⌘C");
+  }
+
+  if (loginCopy) loginCopy.addEventListener("click", copyLogin);
+  if (liveCell) fill(liveCell, dot(), client ? "Waiting for the plugin…" : "Open this panel from Stream Deck.");
+
+  /** The live-usage status line (the plugin words it: "Live · updated 21:41", "Sign in once: run this in Terminal") and,
+   *  while Claude Code is signed out, the sign-in command. */
+  function renderLive() {
+    if (!liveCell) return;
+    const lu = status && status.liveUsage && typeof status.liveUsage === "object" ? status.liveUsage : null;
+    if (!lu) {
+      // Same as the status box: the plugin never answered.
+      if (!gotStatus && client) fill(liveCell, dot("bad"), "No answer from the plugin", sub("Is the Claude Code plugin running? Reopen this panel."));
+      return;
+    }
+    fill(liveCell, dot(lu.tone === "good" ? "good" : lu.tone === "bad" ? "bad" : ""), str(lu.text), str(lu.detail) ? sub(str(lu.detail)) : "");
+    const cmd = str(lu.loginCommand);
+    if (loginBox) loginBox.hidden = !cmd;
+    if (loginCmd && cmd && loginCmd.textContent !== cmd) loginCmd.textContent = cmd;
+  }
+
   // ── Status box ────────────────────────────────────────────────────────────────────────────────────────────
 
   const statusHost = $("#cc-status");
@@ -301,6 +362,7 @@
   const clock = (at) => new Date(num(at)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   function renderStatus() {
+    renderLive();
     if (!statusHost) return;
     const p = status;
     if (!p) {

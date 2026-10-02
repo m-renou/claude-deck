@@ -48,7 +48,7 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "usage",
     name: "Usage",
-    tooltip: "View usage: plan limits when the Claude app has recorded them, otherwise the selected chat's context window.",
+    tooltip: "View usage: your plan's limits (live every minute from Claude Code, else as the Claude app recorded them), otherwise the selected chat's context window.",
     controllers: ["Keypad", "Encoder", "Neo"],
     dial: { rotate: "Switch view", push: "Refresh", touch: "Refresh" },
     icon: "usage",

@@ -235,8 +235,15 @@ export function usageKey(u: Usage): string {
   const bar = { x: 118, w: 8, top: 16, bottom: 128 };
   const textW = bar.x - 6 - L.pad;
   const pct = typeof u.percent === "number" && Number.isFinite(u.percent) ? u.percent : undefined;
-  const line = (s: string | undefined, y: number, size: number, fill: string): string =>
-    s ? text(L.pad, y, fitPrefix(s, size, textW), { size, fill }) : "";
+  /** One line at `size`, shrunk by up to 2 px when that makes it fit ("resets 00:00", "as of May 30" keep their last
+   *  digit), else clipped. */
+  const line = (s: string | undefined, y: number, size: number, fill: string): string => {
+    if (!s) return "";
+    let fit = size;
+    while (fit > size - 2 && textWidth(s, fit) > textW) fit -= 0.5;
+    if (textWidth(s, fit) > textW) fit = size;
+    return text(L.pad, y, fitPrefix(s, fit, textW), { size: fit, fill });
+  };
 
   let out = bgRect(C.bg);
   out += line(USAGE_LABEL[u.kind] ?? "Usage", 33, 17, C.white);

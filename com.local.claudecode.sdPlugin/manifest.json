@@ -280,7 +280,7 @@
 		{
 			"UUID": "com.local.claudecode.usage",
 			"Name": "Usage",
-			"Tooltip": "View usage: plan limits when the Claude app has recorded them, otherwise the selected chat's context window.",
+			"Tooltip": "View usage: your plan's limits (live every minute from Claude Code, else as the Claude app recorded them), otherwise the selected chat's context window.",
 			"Icon": "imgs/actions/usage",
 			"Controllers": [
 				"Keypad",

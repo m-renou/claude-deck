@@ -12,7 +12,11 @@
 //     Keep Awake's mode and duration); defaults the actions assume are the ones the pages show (Model slots, the
 //     effort cycle);
 //   • the status box's data-rows names rows ui/pi.js draws (its ROWS), and only the Keep Awake page — the one the
-//     plugin sends KeepingYouAwake's state to — shows the keepAwake row (and it must).
+//     plugin sends KeepingYouAwake's state to — shows the keepAwake row (and it must);
+//   • no page takes a password or token (live usage runs on Claude Code's own sign-in); only the Usage page — the one
+//     the plugin sends live usage to — has the live-usage section (and it must): its status line and the sign-in
+//     command to copy, hidden until the plugin says Claude Code is signed out; ui/pi.js never writes settings itself,
+//     and every message it sends is one the plugin handles (PI_EVENTS).
 //
 //   node scripts/check-pi.ts            (exit code 1 when something is wrong)
 
@@ -160,6 +164,14 @@ export function statusRowNames(piJs: string): string[] {
   return [...block.matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map((m) => m[1]!);
 }
 
+/** Events ui/pi.js sends to the plugin: `send({ event: "…" … })`. */
+export function sentEvents(piJs: string): string[] {
+  return [...new Set([...piJs.matchAll(/\bsend\(\s*\{\s*event\s*:\s*["']([^"']+)["']/g)].map((m) => m[1]!))];
+}
+
+/** The live-usage elements ui/pi.js fills in (ids on the Usage page). */
+export const LIVE_USAGE_IDS = ["cc-live", "cc-login", "cc-login-cmd", "cc-login-copy"] as const;
+
 // ── The check ───────────────────────────────────────────────────────────────────────────────────────────
 
 type Enums = Record<string, { values: readonly string[]; default?: string }>;
@@ -247,6 +259,22 @@ export function checkPi(root = ROOT): CheckResult {
       if (t.attrs.style) for (const r of remoteRefs(t.attrs.style)) problems.push(`${where}: style loads ${r}`);
     }
     for (const m2 of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) for (const r of remoteRefs(m2[1]!)) problems.push(`${where}: <style> loads ${r}`);
+
+    // No secrets anywhere: live usage runs on Claude Code's own sign-in.
+    for (const t of tags) {
+      if (t.name === "sdpi-password" || (t.name === "input" && t.attrs.type?.toLowerCase() === "password")) {
+        problems.push(`${where}: <${t.name}${t.attrs.id ? ` id="${t.attrs.id}"` : ""}> is a password field — no page takes a password or token (live usage uses Claude Code's own sign-in)`);
+      }
+    }
+    // The live-usage section: on the Usage page only (the one the plugin sends live usage to), complete there.
+    const liveTags = tags.filter((t) => t.attrs["data-live-usage"] !== undefined || (LIVE_USAGE_IDS as readonly string[]).includes(t.attrs.id ?? ""));
+    if (a.id !== "usage" && liveTags.length) problems.push(`${where}: has live-usage elements, but only the Usage page gets live usage`);
+    if (a.id === "usage") {
+      if (!tags.some((t) => t.attrs["data-live-usage"] !== undefined)) problems.push(`${where}: no live-usage section ([data-live-usage])`);
+      for (const id of LIVE_USAGE_IDS) if (!tags.some((t) => t.attrs.id === id)) problems.push(`${where}: the live-usage section needs #${id}`);
+      const login = tags.find((t) => t.attrs.id === "cc-login");
+      if (login && login.attrs.hidden === undefined) problems.push(`${where}: #cc-login should start hidden (the sign-in command shows only while Claude Code is signed out)`);
+    }
 
     // Settings
     const settingTags = tags.filter((t) => t.attrs.setting !== undefined);
@@ -363,6 +391,11 @@ export function checkPi(root = ROOT): CheckResult {
       for (const api of ["fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "navigator.sendBeacon", "import(", "importScripts", "innerHTML", "outerHTML", "insertAdjacentHTML", "eval(", "new Function"]) {
         if (text.includes(api)) problems.push(`ui/pi.js: uses ${api} (pages talk to the plugin only through SDPIComponents.streamDeckClient)`);
       }
+      for (const api of ["setSettings", "setGlobalSettings", "localStorage", "sessionStorage", "indexedDB"]) {
+        if (text.includes(api)) problems.push(`ui/pi.js: uses ${api} (settings are saved by sdpi-components' bound fields only)`);
+      }
+      const handled: readonly string[] = PI_EVENTS;
+      for (const e of sentEvents(text)) if (!handled.includes(e)) problems.push(`ui/pi.js: sends "${e}", which the plugin doesn't handle (src/pi-core.ts PI_EVENTS)`);
     }
   }
 

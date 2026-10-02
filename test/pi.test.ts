@@ -13,6 +13,8 @@ import {
   ACCESS_FIX,
   chatItems,
   folderItems,
+  liveUsageLine,
+  type LiveUsageInput,
   MAX_POSITION,
   modelItems,
   modelSlotItems,
@@ -59,6 +61,93 @@ describe("piRequest", () => {
 
   it("ignores anything else", () => {
     for (const p of [undefined, null, "getChats", 3, [], {}, { event: 1 }, { event: "test" }, { event: "setSettings" }]) assert.equal(piRequest(p), undefined);
+  });
+
+  it("the old live-usage token messages are gone (no page may send a token)", () => {
+    for (const event of ["setUsageToken", "removeUsageToken"]) assert.equal(piRequest({ event, token: "sk-ant-oat01-x" }), undefined);
+  });
+});
+
+// ── Live usage (Usage page) ─────────────────────────────────────────────────────────────────────────────
+
+describe("liveUsageLine (Usage page)", () => {
+  const T = new Date(2026, 9, 2, 22, 41).getTime(); // local, so "22:41" holds in any time zone
+  const APP_AT = new Date(2026, 9, 2, 12, 39).getTime();
+  const CLI = "/Users/me/Library/Application Support/Claude/claude-code/2.1.286/f2326db61802/claude.app/Contents/MacOS/claude";
+  const line = (state: LiveUsageInput["state"], o: Partial<Omit<LiveUsageInput, "state">> = {}) => liveUsageLine({ state, watching: true, now: T + 30_000, ...o });
+  const sample = { at: T, source: "live" as const, weekly: 16, fiveHour: 3 };
+
+  it("live", () => {
+    assert.deepEqual(line({ status: "live", sample, checkedAt: T, cli: CLI }), {
+      tone: "good",
+      text: "Live · updated 22:41",
+      detail: "Every minute while a Usage key shows Weekly, 5-hour or Auto.",
+    });
+    // Paused (no plan view): no green dot next to an update that may be hours old.
+    assert.deepEqual(line({ status: "live", sample, checkedAt: T }, { watching: false, now: T + 3 * 3600_000 }), {
+      tone: "idle",
+      text: "Paused · last update 22:41",
+      detail: "Starts again when a Usage key shows Weekly, 5-hour or Auto.",
+    });
+  });
+
+  it("signed out: sign in once with the shell-quoted command of the Claude Code it runs, then wait a minute", () => {
+    assert.deepEqual(line({ status: "signed-out", message: "Claude Code isn't signed in", cli: CLI }, { appSampleAt: APP_AT }), {
+      tone: "bad",
+      text: "Sign in once: run this in Terminal",
+      detail: "Keys show the Claude app's saved numbers (as of 12:39) meanwhile.",
+      loginCommand: `'${CLI}' auth login`,
+    });
+    // Without a CLI in the state: the one the plugin found, else plain claude.
+    assert.equal(line({ status: "signed-out" }, { cli: "/opt/homebrew/bin/claude" }).loginCommand, "/opt/homebrew/bin/claude auth login");
+    assert.equal(line({ status: "signed-out" }).loginCommand, "claude auth login");
+    for (const status of ["idle", "starting", "live", "no-cli", "no-answer", "error", "blocked"] as const) {
+      assert.equal(line({ status, cli: CLI }).loginCommand, undefined, `${status}: no sign-in command`);
+    }
+  });
+
+  it("failures, in the words the page shows, with the numbers the keys show meanwhile", () => {
+    const noAnswer = line({ status: "no-answer", message: "no answer within 15 s", retryAt: new Date(2026, 9, 2, 22, 42).getTime(), sample });
+    assert.deepEqual([noAnswer.tone, noAnswer.text, noAnswer.detail], [
+      "bad",
+      "Claude Code didn't answer — retrying",
+      "no answer within 15 s · next try 22:42 · Keys show the last live numbers (as of 22:41) until it answers.",
+    ]);
+    assert.deepEqual(line({ status: "no-cli" }, { appSampleAt: APP_AT }), {
+      tone: "bad",
+      text: "Claude Code isn't installed in the Claude app yet",
+      detail: "Open the Code tab in the Claude app once. · Keys show the Claude app's saved numbers (as of 12:39) meanwhile.",
+    });
+    const err = line({ status: "error", message: "Failed to fetch usage: 503", sample });
+    assert.deepEqual([err.tone, err.text, err.detail], ["bad", "Failed to fetch usage: 503", "Retrying every minute. · Keys show the last live numbers (as of 22:41) meanwhile."]);
+    assert.equal(line({ status: "error" }).text, "Claude Code's answer had no usage numbers");
+    assert.equal(line({ status: "error", message: "x".repeat(300) }).text.length, 120, "a short error");
+    assert.deepEqual(line({ status: "blocked", message: "Claude Code opened an inbox for messages from other sessions", sample }), {
+      tone: "bad",
+      text: "Live usage stopped: other sessions could reach Claude Code",
+      detail: "Claude Code opened an inbox for messages from other sessions · It starts again when the Claude app updates Claude Code. · Keys show the last live numbers (as of 22:41) meanwhile.",
+    });
+  });
+
+  it("names the newer source: the last live answer or the app's own sample", () => {
+    const old = new Date(2026, 9, 1, 9, 0).getTime();
+    assert.equal(line({ status: "no-answer", sample: { ...sample, at: old } }, { appSampleAt: APP_AT }).detail, "Keys show the Claude app's saved numbers (as of 12:39) until it answers.");
+    assert.equal(line({ status: "no-cli", sample: { ...sample, at: old } }, { now: T + 3 * 86_400_000 }).detail, "Open the Code tab in the Claude app once. · Keys show the last live numbers (as of Oct 1) meanwhile.");
+    assert.equal(line({ status: "no-answer" }).detail, undefined);
+  });
+
+  it("before the first answer", () => {
+    assert.deepEqual(line({ status: "idle" }), { tone: "idle", text: "Starting Claude Code…" });
+    assert.deepEqual(line({ status: "idle" }, { watching: false }), { tone: "idle", text: "Paused", detail: "Starts when a Usage key shows Weekly, 5-hour or Auto." });
+    assert.deepEqual(line({ status: "starting" }), { tone: "idle", text: "Asking Claude Code…" });
+  });
+
+  it("goes to Usage pages only, as plain JSON", () => {
+    const liveUsage: LiveUsageInput = { state: { status: "live", sample, checkedAt: T }, watching: true, now: T };
+    const p = statusPayload({ actionId: "usage", snap: snap(), needsAccess: false, liveUsage });
+    assert.equal(p.liveUsage?.text, "Live · updated 22:41");
+    assert.deepEqual(JSON.parse(JSON.stringify(p)), p);
+    for (const actionId of ["model", "keep-awake"]) assert.equal(statusPayload({ actionId, snap: snap(), needsAccess: false, liveUsage }).liveUsage, undefined, actionId);
   });
 });
 
@@ -370,6 +459,26 @@ describe("check-pi catches mistakes", () => {
     has(/ui\/model\.html: slot1 should default to "claude-fable-5-1"/);
     has(/ui\/model\.html: slot4 should use datasource="getModelSlots"/);
     has(/ui\/effort\.html: the cycle field should default to "low, medium, high, xhigh, max, ultracode"/);
+  });
+
+  it("flags a password field anywhere, a broken live-usage section, live usage on another page, unknown messages", () => {
+    edit("usage.html", (s) =>
+      s
+        .replace(`<div class="cc-row">`, `<sdpi-item label="Token"><sdpi-password id="cc-token"></sdpi-password></sdpi-item>\n    <div class="cc-row">`)
+        .replace(`id="cc-live"`, `id="cc-live-status"`)
+        .replace(`id="cc-login" hidden`, `id="cc-login"`),
+    );
+    edit("speed.html", (s) => s.replace(`<div id="cc-status">`, `<input type="password" id="x" />\n  <span id="cc-live"></span>\n  <div id="cc-status">`));
+    edit("pi.js", (s) => `${s}\nsend({ event: "setUsageToken", token: "x" });\nclient.setGlobalSettings({});\n`);
+    const { problems } = checkPi(tmp);
+    const has = (re: RegExp) => assert.ok(problems.some((p) => re.test(p)), `expected a problem matching ${re}\n${problems.join("\n")}`);
+    has(/ui\/usage\.html: <sdpi-password id="cc-token"> is a password field — no page takes a password or token/);
+    has(/ui\/usage\.html: the live-usage section needs #cc-live$/);
+    has(/ui\/usage\.html: #cc-login should start hidden/);
+    has(/ui\/speed\.html: <input id="x"> is a password field/);
+    has(/ui\/speed\.html: has live-usage elements, but only the Usage page gets live usage/);
+    has(/ui\/pi\.js: uses setGlobalSettings/);
+    has(/ui\/pi\.js: sends "setUsageToken", which the plugin doesn't handle/);
   });
 
   it("flags a tampered sdpi-components copy", () => {

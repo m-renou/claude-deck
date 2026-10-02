@@ -287,6 +287,17 @@ describe("Neo infobar", () => {
     assert.equal(attr(textAttrs(s, "61%"), "text-anchor"), "end");
     wellFormed(usageNeo({ kind: "none" }), NEO_W, NEO_H);
   });
+
+  it("never cuts the other window's number: shown whole, else the detail row is line1 alone", () => {
+    const fresh = usageNeo({ kind: "5-hour", percent: 3, line1: "resets 00:41", line2: "Weekly 16%", source: "live" });
+    wellFormed(fresh, NEO_W, NEO_H);
+    assert.deepEqual(texts(fresh), ["5-hour", "resets 00:41", "3%"]);
+    assert.deepEqual(texts(usageNeo({ kind: "weekly", percent: 16, line1: "resets Wed", line2: "5-hour 3%" })), ["Weekly", "resets Wed", "16%"]);
+    assert.deepEqual(texts(usageNeo({ kind: "weekly", percent: 16, line1: "Oct 8", line2: "5-hour 3%" })), ["Weekly", "Oct 8", "5-hour 3%", "16%"], "fits: shown");
+    // A chat title may still fade out after the context numbers.
+    const ctx = usageNeo({ kind: "context", percent: 7, line1: "70k / 1M", line2: "Refactor feature and review our recent changes" });
+    assert.equal(texts(ctx).length, 4);
+  });
 });
 
 // ── Cursors and the Power scale ─────────────────────────────────────────────────────────────────────────

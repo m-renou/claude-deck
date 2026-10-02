@@ -34,34 +34,64 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+const isExecutable = (p: string): boolean => {
+  try {
+    fs.accessSync(p, fs.constants.X_OK);
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The CLI copies the desktop app bundles, newest version first. Two layouts:
+ *   <appSupport>/claude-code/<version>/claude.app/Contents/MacOS/claude            (older apps)
+ *   <appSupport>/claude-code/<version>/<hash>/claude.app/Contents/MacOS/claude     (2.1.28x: one folder per build)
+ * Within a version the plain layout comes first, then the build folders, most recently written first. Only executables
+ * that exist are listed (a half-downloaded build has none).
+ */
+export function bundledClaudeClis(appDir = appSupportDir(), platform: NodeJS.Platform = process.platform): string[] {
+  const bundled = path.join(appDir, "claude-code");
+  const exe = (dir: string) => (platform === "win32" ? path.join(dir, "claude.exe") : path.join(dir, "claude.app", "Contents", "MacOS", "claude"));
+  const subdirs = (dir: string): string[] => {
+    try {
+      return fs
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !e.name.endsWith(".app"))
+        .map((e) => {
+          const p = path.join(dir, e.name);
+          let mtime = 0;
+          try {
+            mtime = fs.statSync(p).mtimeMs;
+          } catch {
+            // gone meanwhile
+          }
+          return { p, name: e.name, mtime };
+        })
+        .sort((a, b) => b.mtime - a.mtime || a.name.localeCompare(b.name))
+        .map((e) => e.p);
+    } catch {
+      return [];
+    }
+  };
+  let versions: string[];
+  try {
+    versions = fs.readdirSync(bundled).filter((v) => /^\d+\.\d+/.test(v)).sort((a, b) => compareVersions(b, a));
+  } catch {
+    return []; // no desktop bundle
+  }
+  const out: string[] = [];
+  for (const v of versions) {
+    const dir = path.join(bundled, v);
+    for (const c of [exe(dir), ...subdirs(dir).map(exe)]) if (isExecutable(c)) out.push(c);
+  }
+  return out;
+}
+
 /** The Claude Code CLI: PATH-independent. Prefers the copy the desktop app bundles (newest version). */
 export function findClaudeCli(): string | undefined {
-  const candidates: string[] = [];
-  const bundled = path.join(appSupportDir(), "claude-code");
-  try {
-    const versions = fs.readdirSync(bundled).filter((v) => /^\d+\.\d+/.test(v)).sort((a, b) => compareVersions(b, a));
-    for (const v of versions) {
-      candidates.push(
-        process.platform === "win32" ? path.join(bundled, v, "claude.exe") : path.join(bundled, v, "claude.app", "Contents", "MacOS", "claude"),
-      );
-    }
-  } catch {
-    // no desktop bundle
-  }
-  candidates.push(
-    path.join(home(), ".local", "bin", process.platform === "win32" ? "claude.exe" : "claude"),
-    "/opt/homebrew/bin/claude",
-    "/usr/local/bin/claude",
-  );
-  for (const c of candidates) {
-    try {
-      fs.accessSync(c, fs.constants.X_OK);
-      return c;
-    } catch {
-      // next
-    }
-  }
-  return undefined;
+  const own = [path.join(home(), ".local", "bin", process.platform === "win32" ? "claude.exe" : "claude"), "/opt/homebrew/bin/claude", "/usr/local/bin/claude"];
+  return [...bundledClaudeClis(), ...own].find(isExecutable);
 }
 
 export const CLAUDE_BUNDLE_ID = "com.anthropic.claudefordesktop";

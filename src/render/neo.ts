@@ -3,7 +3,9 @@
 //   Activity  two rows, 14 px semibold at baselines 17.5 / 39, x = 10: the selected chat in white, the next one
 //             grey; ✓ / clock (22 px box) at the right end (centre x 215), text faded before it
 //   Usage     label 13.5 px white at baseline 18.6, detail line grey at baseline 38.8, percentage 24 px
-//             right-aligned at x = 220 (baseline 27), 4 px bar from x = 157 to 221 at y = 37.5
+//             right-aligned at x = 220 (baseline 27), 4 px bar from x = 157 to 221 at y = 37.5. The detail row holds
+//             line1 and, when it fits whole, a plan view's line2 ("Weekly 16%": a number is never cut); a context
+//             view's line2 (the chat's title) may fade out.
 // The infobar has no touch input for plugins (its two touch points switch pages), so these are display only.
 // Pure module (no @elgato/streamdeck import) so it can be unit-tested with plain node.
 
@@ -55,11 +57,13 @@ export function usageNeo(u: Usage): string {
   lines.raw(bgRect(C.bg, NEO_W, NEO_H));
   lines.add(NEO.left, g.labelY, USAGE_LABEL[u.kind] ?? "Usage", { size: g.labelSize, fill: C.white, clipX: g.lineClip, fade: 12 });
 
-  // Detail: both lines on one row ("Aug 28   3 resets"), clipped before the bar.
+  // Detail: both lines on one row ("Aug 28   3 resets"), clipped before the bar. A plan view's second line is the other
+  // window's number ("Weekly 16%"): whole or not at all ("resets 22:40" alone), never "Weekly 1…".
   const [a, b] = usageLines(u);
   if (a) lines.add(NEO.left, g.lineY, a, { size: g.lineSize, fill: C.grey, clipX: g.lineClip, fade: 12 });
   const bx = NEO.left + (a ? textWidth(a, g.lineSize) + 14 : 0);
-  if (b && bx < g.lineClip - 16) lines.add(bx, g.lineY, b, { size: g.lineSize, fill: C.grey, clipX: g.lineClip, fade: 12 });
+  const whole = b !== undefined && bx + textWidth(b, g.lineSize) <= g.lineClip;
+  if (b && bx < g.lineClip - 16 && (whole || u.kind === "context")) lines.add(bx, g.lineY, b, { size: g.lineSize, fill: C.grey, clipX: g.lineClip, fade: 12 });
 
   lines.raw(text(g.pctRight, g.pctY, usagePercent(u), { size: g.pctSize, fill: C.white, anchor: "end" }));
   const { x0, x1, y, h } = g.bar;

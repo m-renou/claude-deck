@@ -7,8 +7,9 @@
 //
 // Requests (see src/pi-core.ts for the payloads): the sdpi-components datasources getChats / getSkills / getModels /
 // getModelSlots / getFolders, and getStatus. Replies go to the PI that asked, and only while it is the visible one.
-// While a PI is open, hub (and KeepingYouAwake) changes and key results are pushed to it (throttled, and only when
-// what it shows changed).
+// While a PI is open, hub (KeepingYouAwake, live usage) changes and key results are pushed to it (throttled, and only
+// when what it shows changed). The Usage page, while open and Claude Code is signed out, has live usage check every
+// minute (the page says: sign in, then wait a minute).
 
 import os from "node:os";
 import streamDeck from "@elgato/streamdeck";
@@ -17,6 +18,9 @@ import { lastResultFor, type StampedResult } from "./actions/core.ts";
 import { activityPosition } from "./actions/settings.ts";
 import { PLUGIN_UUID } from "./catalog.ts";
 import { listSkills } from "./claude/extras.ts";
+import { findClaudeCli } from "./claude/paths.ts";
+import { readPlanUsage } from "./claude/usage.ts";
+import { usageLive } from "./claude/usage-live.ts";
 import { hub } from "./hub.ts";
 import { chatItems, folderItems, modelItems, modelSlotItems, type PiEvent, type PiStatus, piRequest, skillItems, statusPayload } from "./pi-core.ts";
 import { keepAwake } from "./system/keep-awake.ts";
@@ -26,6 +30,9 @@ const PREFIX = `${PLUGIN_UUID}.`;
 const REPLY_WAIT_MS = 1500;
 const PUSH_THROTTLE_MS = 600;
 const ACCESS_RECHECK_MS = 8000;
+const CLI_RECHECK_MS = 60_000;
+/** Signed out, with the Usage page open: ask Claude Code again at most this often. */
+const SIGN_IN_RECHECK_MS = 60_000;
 
 const log = streamDeck.logger.createScope("PI");
 
@@ -87,6 +94,15 @@ function followOf(contextId: string): { position: number; auto: boolean } | unde
   return { position, auto: activityPosition(inst.settings) === 0 };
 }
 
+/** The Claude Code CLI the Usage page's sign-in command names before live usage ran one (looked up at most once a
+ *  minute: the app updates it). */
+let cliFound: { at: number; cli: string | undefined } | undefined;
+function claudeCli(): string | undefined {
+  const now = Date.now();
+  if (!cliFound || now - cliFound.at > CLI_RECHECK_MS) cliFound = { at: now, cli: findClaudeCli() };
+  return cliFound.cli;
+}
+
 export function buildStatus(actionId: string, contextId: string): PiStatus {
   const act = actionOf(actionId);
   const inst = act?.instance(contextId);
@@ -98,6 +114,8 @@ export function buildStatus(actionId: string, contextId: string): PiStatus {
     controller: inst?.controller,
     follow: actionId === "activity" ? followOf(contextId) : undefined,
     keepAwake: keepAwake.state, // statusPayload passes it on to Keep Awake pages only
+    // Usage pages only (statusPayload drops it elsewhere): read the app's file only for them.
+    liveUsage: actionId === "usage" ? { state: usageLive.state, watching: usageLive.watching, appSampleAt: readPlanUsage()?.at, cli: claudeCli(), now: Date.now() } : undefined,
   });
 }
 
@@ -138,11 +156,13 @@ function recheckAccess(): void {
 export async function handlePiMessage(actionId: string, ev: unknown): Promise<void> {
   const e = (ev ?? {}) as EventLike;
   const contextId = e.action?.id;
+  if (!contextId) return;
   const req = piRequest(e.payload);
-  if (!contextId || !req) return;
+  if (!req) return;
   await loadRegistry();
   if (req.event === "getStatus") {
     recheckAccess();
+    if (actionId === "usage" && usageLive.state.status === "signed-out") usageLive.refreshNow(SIGN_IN_RECHECK_MS);
     await sendTo(contextId, buildStatus(actionId, contextId), REPLY_WAIT_MS);
     return;
   }
@@ -177,6 +197,7 @@ function schedulePush(): void {
 
 hub.on("change", schedulePush);
 keepAwake.on("change", schedulePush);
+usageLive.on("change", schedulePush);
 streamDeck.ui.onDidAppear((ev) => {
   sentFor = ev.action.id;
   sent.clear();

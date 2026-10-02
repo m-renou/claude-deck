@@ -2,9 +2,13 @@
 // its own view (settings.view → hub.usageFor(view): a Weekly key never shows Context — without weekly data it keeps
 // its label and says so in grey). Press cycles the view auto → weekly → 5-hour → context (saved in the key's settings).
 // Dial: "Weekly 61%", detail lines and a horizontal bar; rotate switches the view (saved like the key's), push or
-// touch refreshes. Neo infobar: label, detail, percentage and bar (display only).
+// touch re-reads now (live usage asks Claude Code only when its last answer is over a minute old, e.g. after a
+// failure). Neo infobar: label, detail, percentage and bar (display only).
+// Live usage (src/claude/usage-live.ts) runs Claude Code and polls only while one of these shows a plan view (weekly,
+// 5-hour or auto).
 
 import type { DialDownEvent, DialRotateEvent, TouchTapEvent } from "@elgato/streamdeck";
+import { usageLive } from "../claude/usage-live.ts";
 import { hub } from "../hub.ts";
 import { usageDial } from "../render/dial.ts";
 import { usageKey } from "../render/keys.ts";
@@ -28,11 +32,21 @@ export class UsageAction extends ClaudeAction<UsageSettings> {
   /** Re-draw now. The hub also follows this view (so it notices when that view's numbers change). */
   protected applyView(view: UsageView): void {
     hub.setUsagePreference(view);
+    this.syncLive();
     hub.refresh(true);
   }
 
   protected override settingsChanged(inst: Inst<UsageSettings>): void {
     this.applyView(usageView(inst.settings));
+  }
+
+  protected override instancesChanged(): void {
+    this.syncLive();
+  }
+
+  /** Live usage is asked for only while a key / dial / infobar shows a plan view (Context doesn't need it). */
+  private syncLive(): void {
+    usageLive.setWatching(this.instances().some((i) => usageView(i.settings) !== "context"));
   }
 
   protected override keySvg(inst: Inst<UsageSettings>): string {
@@ -79,8 +93,12 @@ export class UsageAction extends ClaudeAction<UsageSettings> {
     this.refreshFor(this.track(ev.action, ev.payload));
   }
 
-  /** Push / touch: re-read usage now (a forced hub refresh recomputes every view). */
+  /** Push / touch: re-read usage now (a forced hub refresh recomputes every view). Live usage asks Claude Code only
+   *  when its last answer is over a minute old (e.g. after a failure): while polling works, it would repeat itself. */
   private refreshFor(inst: Inst<UsageSettings>): void {
-    this.safe("refresh", () => this.applyView(usageView(inst.settings)));
+    this.safe("refresh", () => {
+      this.applyView(usageView(inst.settings));
+      if (usageView(inst.settings) !== "context") usageLive.refreshNow();
+    });
   }
 }

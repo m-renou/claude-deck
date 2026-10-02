@@ -42,16 +42,18 @@ export interface ModelInfo {
 }
 
 export interface Usage {
-  /** What is shown: "weekly" / "5-hour" plan limits (latest sample the app recorded), the selected chat's context
-   * window, or "none" (no data for the requested view — line1 says why). */
+  /** What is shown: "weekly" / "5-hour" plan limits (the newest sample: live from Claude Code, or what the app
+   * recorded), the selected chat's context window, or "none" (no data for the requested view — line1 says why). */
   kind: "weekly" | "5-hour" | "context" | "none";
   /** The view that was asked for (label a "none" result with it: "Weekly" + "No usage recorded yet"). */
   view?: "weekly" | "5-hour" | "context";
   percent?: number;
-  /** Secondary line, e.g. "420k / 1M" or a reset date. */
+  /** Secondary line, e.g. "420k / 1M", "resets 22:40" or "as of 12:39". */
   line1?: string;
   line2?: string;
   updatedAt?: number;
+  /** Plan views: where the numbers come from ("live" = live usage, "app" = the desktop app's file). */
+  source?: "live" | "app";
 }
 
 export interface Snapshot {

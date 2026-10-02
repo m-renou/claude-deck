@@ -11,6 +11,9 @@
 import type { StampedResult } from "./actions/core.ts";
 import { NO_MODEL } from "./actions/settings.ts";
 import type { Skill } from "./claude/extras.ts";
+import { asOf, clockTime, type PlanSample } from "./claude/usage.ts";
+import { loginCommand, oneLine } from "./claude/usage-cli.ts";
+import type { LiveUsageState } from "./claude/usage-live.ts";
 import { icon } from "./render/icons.ts";
 import { STATUS_STYLE } from "./render/keys.ts";
 import { dataUri, relTime, svg } from "./render/kit.ts";
@@ -51,6 +54,72 @@ export function piRequest(payload: unknown): { event: PiEvent; isRefresh: boolea
   const p = payload as { event?: unknown; isRefresh?: unknown };
   if (typeof p.event !== "string" || !(PI_EVENTS as readonly string[]).includes(p.event)) return undefined;
   return { event: p.event as PiEvent, isRefresh: p.isRefresh === true };
+}
+
+// ── Live usage (Usage page) ─────────────────────────────────────────────────────────────────────────────
+
+/** The Usage page's live-usage line: a dot (good / bad / neutral), one line, and an optional grey detail. */
+export interface LiveUsageLine {
+  tone: "good" | "bad" | "idle";
+  text: string;
+  detail?: string;
+  /** Signed out: the Terminal command that signs Claude Code in (the page shows it with a Copy button). */
+  loginCommand?: string;
+}
+
+export interface LiveUsageInput {
+  state: LiveUsageState;
+  /** A Usage key / dial / infobar shows a plan view (live usage polls only then). */
+  watching: boolean;
+  /** Time of the Claude app's own latest sample (plan-usage-history.json). */
+  appSampleAt?: number;
+  /** The Claude Code CLI the plugin found (src/claude/paths.ts findClaudeCli), when the state names none. */
+  cli?: string;
+  now: number;
+}
+
+const PLAN_VIEWS = "Weekly, 5-hour or Auto";
+
+/**
+ * Which numbers the keys show while live usage can't update them: the newer of the last live answer (kept through
+ * errors) and the Claude app's own sample — the one computeUsage picks. undefined when there are none.
+ */
+function keysShow(sample: PlanSample | undefined, appSampleAt: number | undefined, now: number): string | undefined {
+  if (sample && (appSampleAt === undefined || sample.at >= appSampleAt)) return `Keys show the last live numbers (${asOf(sample.at, now)})`;
+  if (appSampleAt !== undefined) return `Keys show the Claude app's saved numbers (${asOf(appSampleAt, now)})`;
+  return undefined;
+}
+
+/** What the Usage page says about live usage (status line of its "Live usage" section). */
+export function liveUsageLine({ state: s, watching, appSampleAt, cli, now }: LiveUsageInput): LiveUsageLine {
+  const keys = keysShow(s.sample, appSampleAt, now);
+  const out = (tone: LiveUsageLine["tone"], text: string, detail?: string): LiveUsageLine => ({ tone, text, ...(detail ? { detail } : {}) });
+  const join = (...parts: Array<string | undefined>): string | undefined => parts.filter(Boolean).join(" · ") || undefined;
+  switch (s.status) {
+    case "idle":
+      return watching ? out("idle", "Starting Claude Code…") : out("idle", "Paused", `Starts when a Usage key shows ${PLAN_VIEWS}.`);
+    case "starting":
+      return out("idle", "Asking Claude Code…");
+    case "live": {
+      // Not watched: polling paused (and the process ends), so the last update may be hours old — no green dot.
+      const at = clockTime(s.sample?.at ?? s.checkedAt ?? now);
+      return watching ? out("good", `Live · updated ${at}`, `Every minute while a Usage key shows ${PLAN_VIEWS}.`) : out("idle", `Paused · last update ${at}`, `Starts again when a Usage key shows ${PLAN_VIEWS}.`);
+    }
+    case "signed-out":
+      return { ...out("bad", "Sign in once: run this in Terminal", keys ? `${keys} meanwhile.` : undefined), loginCommand: loginCommand(s.cli ?? cli) };
+    case "no-answer":
+      return out("bad", "Claude Code didn't answer — retrying", join(s.message, s.retryAt !== undefined ? `next try ${clockTime(s.retryAt)}` : undefined, keys && `${keys} until it answers.`));
+    case "no-cli":
+      return out("bad", "Claude Code isn't installed in the Claude app yet", join("Open the Code tab in the Claude app once.", keys && `${keys} meanwhile.`));
+    case "error":
+      return out("bad", oneLine(s.message ?? "", 120) || "Claude Code's answer had no usage numbers", join("Retrying every minute.", keys && `${keys} meanwhile.`));
+    case "blocked":
+      return out(
+        "bad",
+        "Live usage stopped: other sessions could reach Claude Code",
+        join(s.message, "It starts again when the Claude app updates Claude Code.", keys && `${keys} meanwhile.`),
+      );
+  }
 }
 
 // ── Status icons (the keys' own icons, in their status colours) ────────────────────────────────────────────
@@ -183,6 +252,8 @@ export interface PiStatus {
   note?: string;
   /** Keep Awake pages: KeepingYouAwake's state (the page shows it instead of the Claude rows). */
   keepAwake?: { installed: boolean; running: boolean; active: boolean; until?: number; pending?: boolean; error?: string };
+  /** Usage pages: the live-usage status line. */
+  liveUsage?: LiveUsageLine;
 }
 
 export interface StatusInput {
@@ -194,6 +265,8 @@ export interface StatusInput {
   follow?: { position: number; auto: boolean };
   /** KeepingYouAwake's state: only a Keep Awake page gets it (other pages ignore it). */
   keepAwake?: KeepAwakeState;
+  /** Live usage: only a Usage page gets it. */
+  liveUsage?: LiveUsageInput;
 }
 
 export function statusPayload(i: StatusInput): PiStatus {
@@ -226,5 +299,6 @@ export function statusPayload(i: StatusInput): PiStatus {
     if (k.pending) out.keepAwake.pending = true;
     if (k.error) out.keepAwake.error = k.error;
   }
+  if (i.liveUsage && i.actionId === "usage") out.liveUsage = liveUsageLine(i.liveUsage);
   return out;
 }

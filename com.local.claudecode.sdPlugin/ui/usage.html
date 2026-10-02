@@ -16,8 +16,28 @@
       <option value="context">Context</option>
     </sdpi-select>
   </sdpi-item>
-  <p class="cc-hint">Weekly / 5-hour: your plan's limits as the Claude app last recorded them. Context: the selected chat's context window. Auto: the plan's limit when there is a recent one, else the context window.</p>
+  <p class="cc-hint">Weekly / 5-hour: your plan's limits — live from Claude Code every minute (below), else as the Claude app last recorded them. Context: the selected chat's context window. Auto: the plan's limit when there is a recent one, else the context window.</p>
   <p class="cc-hint">Each key shows its own view; pressing it switches to the next one.</p>
+
+  <!-- Live usage: the plugin asks Claude Code on this Mac (the copy the Claude app installs), which uses its own
+       sign-in. The page never takes a password or token. -->
+  <section class="cc-section" data-live-usage>
+    <p class="cc-heading">Live usage (every minute)</p>
+    <p class="cc-hint">Your plan's limits, asked every minute from Claude Code on this Mac with Claude Code's own sign-in — no password or token goes through the plugin. Claude Code runs for this as a background helper that takes no messages from your other Claude Code sessions.</p>
+    <p class="cc-hint">Claude Code's usage request is experimental. Should it stop working, the keys show the Claude app's saved numbers instead (“as of 12:39”).</p>
+    <div class="cc-row">
+      <span class="cc-k">Status</span>
+      <span class="cc-v" id="cc-live" aria-live="polite"></span>
+    </div>
+    <!-- Shown only while Claude Code is signed out. The plugin fills in the command with the Claude Code it runs (the
+         Claude app's copy isn't on PATH). -->
+    <div class="cc-login" id="cc-login" hidden>
+      <code class="cc-cmd" id="cc-login-cmd">claude auth login</code>
+      <sdpi-button id="cc-login-copy">Copy command</sdpi-button>
+      <p class="cc-note">Then wait a minute: the keys go live by themselves.</p>
+    </div>
+  </section>
+
   <div id="cc-status"></div>
   <script src="./pi.js"></script>
 </body>
