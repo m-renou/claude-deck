@@ -28,7 +28,7 @@ const config = {
 			},
 		},
 		typescript({
-			// The wire contracts live in ../shared (outside this package): let the plugin transpile them too.
+			// Transpile only the plugin sources (scripts/ and test/ run directly under Node).
 			include: ["src/**/*.ts"],
 			mapRoot: isWatching ? "./" : undefined
 		}),

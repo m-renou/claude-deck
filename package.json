@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Stream Deck plugin for the Claude desktop app (Claude Code): follow chats, send prompts, steer, stop, switch model / effort / speed, usage and panels.",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
@@ -13,7 +14,7 @@
     "check-pi": "node scripts/check-pi.ts",
     "typecheck": "tsc --noEmit -p .",
     "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
-    "pack": "mkdir -p ../dist && streamdeck pack com.local.claudecode.sdPlugin --force --no-update-check -o ../dist"
+    "pack": "mkdir -p dist && streamdeck pack com.local.claudecode.sdPlugin --force --no-update-check -o dist"
   },
   "devDependencies": {
     "@elgato/cli": "^1.10.1",

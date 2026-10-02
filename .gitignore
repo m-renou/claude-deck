@@ -4,3 +4,8 @@ node_modules/
 # Stream Deck files
 *.sdPlugin/bin
 *.sdPlugin/logs
+
+# Packaged plugin (npm run pack)
+dist/
+
+.DS_Store
