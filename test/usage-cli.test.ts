@@ -20,11 +20,16 @@ import {
   messagingSocketOf,
   readUsageAnswer,
   shellQuote,
+  terminalName,
   TURN_STARTED,
   UsageCli,
   type UsageCliOptions,
 } from "../src/claude/usage-cli.ts";
 import { CLI, FakeClaude, FakeClock, NEW_CLI, settle, SIGNED_OUT_RESPONSE, USAGE_RESPONSE } from "./fake-claude.ts";
+import { setHostPlatform } from "../src/platform.ts";
+
+// The macOS wording (Terminal, shell quoting) whatever machine runs the tests; Windows has its own cases.
+setHostPlatform("darwin");
 
 const AT = Date.UTC(2026, 9, 2, 21, 41);
 
@@ -99,6 +104,15 @@ describe("commands and environment", () => {
     assert.equal(loginCommand(undefined), "claude auth login");
     assert.equal(shellQuote("/Users/o'brien/My Apps/claude"), `'/Users/o'\\''brien/My Apps/claude'`);
     assert.equal(shellQuote("$(rm -rf ~)"), `'$(rm -rf ~)'`);
+  });
+
+  it("Windows: a PowerShell command (call operator, single quotes doubled) to run in PowerShell", () => {
+    const win = "C:\\Users\\me\\AppData\\Roaming\\Claude\\claude-code\\2.1.288\\36aa8c97bf86\\claude.exe";
+    assert.equal(loginCommand(win, "win32"), `& '${win}' auth login`);
+    assert.equal(loginCommand("C:\\Users\\o'brien\\claude.exe", "win32"), "& 'C:\\Users\\o''brien\\claude.exe' auth login");
+    assert.equal(loginCommand(undefined, "win32"), "claude auth login");
+    assert.equal(terminalName("win32"), "PowerShell");
+    assert.equal(terminalName("darwin"), "Terminal");
   });
 
   it("strips CLAUDE_CODE_*, ANTHROPIC_* and CLAUDECODE, keeps the rest, then switches the inbox for other sessions off", () => {

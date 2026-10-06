@@ -1038,11 +1038,19 @@ describe("control.ts", () => {
     assert.ok(!/onDidReceiveDeepLink|diag/i.test(plugin));
   });
 
-  it("is macOS-only", async () => {
-    control.setExec(async () => ({ code: 0, stdout: "", stderr: "" }), { platform: "win32" });
+  it("drives macOS and Windows only", async () => {
+    const calls: string[] = [];
+    control.setExec(
+      async (cmd) => {
+        calls.push(cmd);
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      { platform: "linux" },
+    );
     const r = await control.typeIntoPrompt("x", { submit: true });
     assert.equal(r.ok, false);
-    assert.match(r.message, /macOS-only/);
+    assert.match(r.message, /macOS and Windows only/);
+    assert.deepEqual(calls, []);
   });
 
   it("serial runs one job at a time, in order", async () => {
@@ -1059,5 +1067,167 @@ describe("control.ts", () => {
     await Promise.all([a, b]);
     assert.deepEqual(order, ["a1", "a2", "b"]);
     assert.equal(control.queueBusy(), false);
+  });
+});
+
+// ── Windows: the same requests to the UI Automation helper (uia-win.ts), on stdin ────────────────────────────
+
+interface WinCall {
+  cmd: string;
+  args: string[];
+  input?: string;
+  req?: Record<string, unknown>;
+}
+
+function winExec(reply: (req: Record<string, unknown>) => Record<string, unknown> | { code: number; stderr: string }, helper?: () => Promise<string>): WinCall[] {
+  const calls: WinCall[] = [];
+  control.setExec(
+    async (cmd, args, _timeout, input) => {
+      const call: WinCall = { cmd, args, input };
+      calls.push(call);
+      if (cmd !== "claude-deck-uia.exe") return { code: 0, stdout: "", stderr: "" };
+      const req = JSON.parse(input!) as Record<string, unknown>;
+      call.req = req;
+      const r = reply(req);
+      if ("code" in r && typeof r.code === "number") return { code: r.code, stdout: "", stderr: String(r.stderr) };
+      return { code: 0, stdout: JSON.stringify(r), stderr: "" };
+    },
+    { platform: "win32", ...(helper ? { helper } : {}) },
+  );
+  return calls;
+}
+
+describe("control.ts on Windows", () => {
+  beforeEach(() => {
+    fs.rmSync(path.dirname(process.env.CLAUDE_CODE_DECK_UI_CACHE!), { recursive: true, force: true });
+    control.resetUiCache();
+  });
+  afterEach(() => control.setExec());
+
+  it("sends the request on stdin (never as an argument), naming the desktop app's executable", async () => {
+    const calls = winExec(() => ({ ok: true, path: [0, 1, 2], cleared: true }));
+    const secret = String.raw`say "hi" & del /q C:\ %PATH% 'x' $(y) ü€`;
+    const r = await control.typeIntoPrompt(secret, { submit: true, requireEmpty: true });
+    assert.equal(r.ok, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]!.cmd, "claude-deck-uia.exe");
+    assert.deepEqual(calls[0]!.args, []);
+    assert.deepEqual(calls[0]!.req, { exe: ["Claude.exe"], op: "prompt", path: null, text: secret, submit: true, requireEmpty: true });
+    assert.deepEqual(control.cachedPromptPath(), [0, 1, 2]);
+  });
+
+  it("shortcuts use Ctrl for ⌘ and key names instead of macOS key codes", async () => {
+    const calls = winExec(() => ({ ok: true }));
+    await control.pressKeys([control.shortcut("stop")]);
+    await control.pressKeys([control.shortcut("terminal")]);
+    await control.pressKeys([control.shortcut("fast")]);
+    await control.pressKeys([control.shortcut("sideChat")]);
+    await control.pressKeys([{ key: "Return", mods: ["cmd", "ctrl"] }]);
+    assert.deepEqual(
+      calls.map((c) => c.req!.keys),
+      [[{ key: "escape" }], [{ key: "`", mods: ["ctrl"] }], [{ key: "f", mods: ["ctrl", "alt"] }], [{ key: ";", mods: ["ctrl"] }], [{ key: "return", mods: ["ctrl"] }]],
+    );
+  });
+
+  it("effort and model requests are the macOS ones", async () => {
+    const calls = winExec(() => ({ ok: true, from: 1, to: 3, max: 5 }));
+    const e = await control.setEffortSlider(3, 6);
+    assert.deepEqual([e.ok, e.from, e.to, e.max], [true, 1, 3, 5]);
+    await control.pickModel(2);
+    assert.deepEqual(
+      calls.map((c) => c.req),
+      [
+        { exe: ["Claude.exe"], op: "effort", target: 3, stops: 6 },
+        { exe: ["Claude.exe"], op: "model", index: 2 },
+      ],
+    );
+  });
+
+  it("Dictate focuses the prompt box, then presses Win+H (Windows voice typing)", async () => {
+    const calls = winExec(() => ({ ok: true, path: [4] }));
+    const r = await control.dictation();
+    assert.equal(r.ok, true);
+    assert.deepEqual(calls[0]!.req, { exe: ["Claude.exe"], op: "dictate", path: null, keys: [{ key: "h", mods: ["win"] }] });
+  });
+
+  it("opens links with the shell's URL handler (no cmd.exe, so & in a link is safe)", async () => {
+    const calls = winExec(() => ({ ok: true }));
+    await control.openNewChat({ prompt: "a & b", folder: String.raw`C:\work\repo` });
+    await control.showChat("local_abc");
+    assert.deepEqual(
+      calls.map((c) => [c.cmd, ...c.args]),
+      [
+        ["rundll32.exe", "url.dll,FileProtocolHandler", "claude://code/new?q=a%20%26%20b&folder=C%3A%5Cwork%5Crepo"],
+        ["rundll32.exe", "url.dll,FileProtocolHandler", "claude://code/continue?session=local_abc"],
+      ],
+    );
+  });
+
+  it("asks the helper whether the desktop app runs; needs no permission", async () => {
+    let running = true;
+    const calls = winExec((req) => (req.op === "running" ? { ok: true, running, window: running } : { ok: false }));
+    assert.equal(await control.isClaudeRunning(), true);
+    running = false;
+    assert.equal(await control.isClaudeRunning(), false);
+    assert.equal(await control.accessibilityGranted(), true);
+    assert.deepEqual(
+      calls.map((c) => c.req!.op),
+      ["running", "running"],
+    );
+  });
+
+  it("Windows wording: Ctrl shortcuts, and blocked key presses explained", async () => {
+    winExec(() => ({ ok: false, error: "effort-not-open" }));
+    assert.equal((await control.setEffortSlider(1, 6)).message, "Claude's effort slider didn't open (Ctrl+Shift+E), so nothing was changed.");
+    winExec(() => ({ ok: false, error: "model-menu-not-open" }));
+    assert.equal((await control.pickModel(0)).message, "Claude's model menu didn't open (Ctrl+Shift+I), so nothing was changed.");
+    winExec(() => ({ ok: false, error: "accessibility", detail: "SendInput was blocked" }));
+    const r = await control.pressKeys([control.shortcut("review")]);
+    assert.equal(r.error, "accessibility");
+    assert.match(r.message, /administrator/);
+    winExec(() => ({ ok: false, error: "prompt-not-found" }));
+    assert.equal((await control.focusPrompt()).message, control.MESSAGES["prompt-not-found"]);
+  });
+
+  it("a helper that can't be built fails the press with the reason, and runs nothing", async () => {
+    const calls = winExec(
+      () => ({ ok: true }),
+      async () => {
+        throw new Error("Couldn't build the Windows helper: csc missing");
+      },
+    );
+    const r = await control.pressKeys([control.shortcut("review")]);
+    assert.equal(r.ok, false);
+    assert.equal(r.error, "failed");
+    assert.match(r.message, /csc missing/);
+    assert.equal(calls.length, 0);
+  });
+
+  it("a crashed helper (no JSON) is a failure with its last stderr line", async () => {
+    winExec(() => ({ code: 3, stderr: "Unhandled Exception: boom\nat Main" }));
+    const r = await control.pressKeys([control.shortcut("review")]);
+    assert.equal(r.ok, false);
+    assert.equal(r.error, "failed");
+    assert.match(r.message, /at Main/);
+  });
+
+  it("labels shortcuts the way each platform writes them", () => {
+    winExec(() => ({ ok: true }));
+    assert.deepEqual(
+      (["modelMenu", "effortMenu", "fast", "terminal", "stop"] as const).map((n) => control.keyLabel(control.shortcut(n))),
+      ["Ctrl+Shift+I", "Ctrl+Shift+E", "Ctrl+Alt+F", "Ctrl+`", "Escape"],
+    );
+    control.setExec(async () => ({ code: 0, stdout: "", stderr: "" }));
+    assert.deepEqual(
+      (["modelMenu", "effortMenu", "fast", "terminal"] as const).map((n) => control.keyLabel(control.shortcut(n))),
+      ["⌘⇧I", "⌘⇧E", "⌘⌥F", "⌃`"],
+    );
+  });
+
+  it("warms up (locate) on Windows too", async () => {
+    const calls = winExec(() => ({ ok: true, path: [7, 7] }));
+    await control.warmUp();
+    assert.equal(calls[0]!.req!.op, "locate");
+    assert.deepEqual(control.cachedPromptPath(), [7, 7]);
   });
 });

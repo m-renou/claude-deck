@@ -4,7 +4,7 @@
 
 A Stream Deck plugin for the **Claude desktop app's Code tab** (Claude Code). Follow your chats on keys, open one
 with a press, send prompts, steer or stop running work, switch model / effort (Ultracode included) / Fast mode,
-watch your plan usage, and toggle the app's panels — all from hardware keys and dials.
+watch your plan usage, and toggle the app's panels — all from hardware keys and dials. Works on **macOS and Windows**.
 
 It works out of the box: no background service, no config file, no API key. The plugin reads the app's local state
 and drives the app through its own keyboard shortcuts.
@@ -20,7 +20,7 @@ and drives the app through its own keyboard shortcuts.
 | --- | --- | --- |
 | **Activity** | A chat tile: working / waiting for input / ready / idle, its time or `+added −deleted` lines, and its title. The chat open in Claude gets a white border | Opens that chat in Claude |
 | **New Chat** | Compose icon | Starts a new Code chat (optional folder and prefilled prompt) |
-| **Dictate** | Microphone | Opens the selected chat and starts macOS Dictation |
+| **Dictate** | Microphone | Opens the selected chat and starts macOS Dictation (Windows: voice typing, Win+H) |
 | **Send Prompt** | Your prompt text | Pastes the prompt into the selected chat and sends it. Leave it empty to send whatever you typed in the box |
 | **Steer** | Your steering text | Same, but meant for a chat that's working: Claude takes it without stopping the turn |
 | **Run Skill** | Skill name (“Code Review”) | Runs `/skill` in the selected chat |
@@ -30,7 +30,7 @@ and drives the app through its own keyboard shortcuts.
 | **Speed** | Lightning bolt (filled when Fast is on) | Toggles Fast mode |
 | **Usage** | Weekly / 5-hour plan usage (live, every minute) or the chat's context window, with a bar | Cycles the view |
 | **Toggle Panel** | The panel's icon | Shows / hides Review (diff), Terminal, Browser, Files or Side chat |
-| **Keep Awake** | Coffee mug (steaming while on, time left when timed) | Turns [KeepingYouAwake](https://keepingyouawake.app) on / off — optional, needs that app |
+| **Keep Awake** | Coffee mug (steaming while on, time left when timed) | Turns [KeepingYouAwake](https://keepingyouawake.app) on / off — optional, needs that app. On Windows it's built in (nothing to install) |
 
 ![Activity keys: working, needs you, done, idle](docs/images/activity.png)
 
@@ -46,11 +46,11 @@ failed press shows Stream Deck's ⚠; a successful one simply shows the new stat
 
 ## Requirements
 
-* **macOS 13** or later
+* **macOS 13** or later, or **Windows 10 / 11** (x64 or ARM64)
 * **Stream Deck 7.6** or later (any model: Stream Deck, Mini, XL, +, Neo — a ready-made profile ships for each)
 * The **Claude desktop app** with the Code tab (Claude Code). A separate `claude` CLI is *not* needed: the plugin
   uses the copy the app bundles.
-* Optional: [KeepingYouAwake](https://keepingyouawake.app) for the Keep Awake key
+* Optional (macOS): [KeepingYouAwake](https://keepingyouawake.app) for the Keep Awake key
 
 ## Installation
 
@@ -83,7 +83,7 @@ or package it and double-click the result:
 
 ```bash
 npm run pack         # → dist/com.local.claudecode.streamDeckPlugin
-open dist/com.local.claudecode.streamDeckPlugin
+open dist/com.local.claudecode.streamDeckPlugin      # Windows (PowerShell): start dist/com.local.claudecode.streamDeckPlugin
 ```
 
 ## First run
@@ -91,6 +91,8 @@ open dist/com.local.claudecode.streamDeckPlugin
 1. **Allow Accessibility.** The plugin presses the Claude app's shortcuts through macOS System Events, so macOS asks
    once to let **Stream Deck** control your computer. Allow it in *System Settings → Privacy & Security →
    Accessibility* (and *Automation → System Events* if asked). Until then keys show a small ⚠ badge.
+   **Windows:** nothing to allow. The first key that types into Claude takes a few seconds longer: it builds the
+   plugin's small UI Automation helper once.
 2. **Pick a layout.** Switch to the **Claude Code** profile in Stream Deck (it isn't switched to automatically), or
    drag actions from the **Claude Code** category onto your own profile. The 15-key profile:
 
@@ -101,8 +103,8 @@ open dist/com.local.claudecode.streamDeckPlugin
    ```
 
 3. **Usage (optional).** Weekly / 5-hour numbers come live from Claude Code every minute, using its own sign-in. If
-   the Usage key's settings say *Sign in once*, copy the command shown there into Terminal (it runs the app's bundled
-   `claude auth login`), then wait a minute. Without it, the key falls back to the numbers the Claude app last
+   the Usage key's settings say *Sign in once*, copy the command shown there into Terminal — PowerShell on Windows —
+   (it runs the app's bundled `claude auth login`), then wait a minute. Without it, the key falls back to the numbers the Claude app last
    recorded (“as of 12:39”).
 
 ## Configuring keys
@@ -137,8 +139,14 @@ Select a key in Stream Deck to open its settings:
 
 The full spec — every key's look and behaviour, timings and failure messages — is in [DESIGN.md](DESIGN.md).
 
+On Windows the same requests go to a small UI Automation helper instead of System Events (built once, on the first
+press, with the C# compiler Windows ships — nothing is downloaded); shortcuts use Ctrl where macOS uses ⌘, and no
+permission is needed. Details in [DESIGN.md](DESIGN.md).
+
 Plugin data lives in `~/.config/claude-code-deck/` (a UI cache and the live-usage working folder); logs in
-`~/Library/Application Support/com.elgato.StreamDeck/Plugins/com.local.claudecode.sdPlugin/logs/`.
+`~/Library/Application Support/com.elgato.StreamDeck/Plugins/com.local.claudecode.sdPlugin/logs/`
+(Windows: `%APPDATA%\Elgato\StreamDeck\Plugins\com.local.claudecode.sdPlugin\logs\`; the UI Automation helper lives in
+`%LOCALAPPDATA%\claude-code-deck\uia\`).
 
 ## Troubleshooting
 
@@ -149,6 +157,8 @@ Plugin data lives in `~/.config/claude-code-deck/` (a UI cache and the live-usag
 | Activity keys are empty | Open the Code tab in the Claude app and start or open a chat |
 | Usage says “as of …” instead of “resets …” | Live usage isn't running — check the Usage key's settings; sign in once if asked |
 | Keep Awake is dimmed | Install KeepingYouAwake in `/Applications` |
+| Windows: Model or Effort shows ⚠ (“menu didn't open”) | Another app holds Ctrl+Shift+I / Ctrl+Shift+E system-wide (AMD Radeon Software does by default): change or turn off those hotkeys in that app |
+| Windows: every press shows ⚠ (“Windows blocked the key presses”) | Claude runs as administrator: start it normally |
 | Changes to the source don't show | `npm run build`, then `npx streamdeck restart com.local.claudecode` (or `npm run watch`) |
 
 ## Uninstall
@@ -161,7 +171,9 @@ its bundled profiles. Optionally delete `~/.config/claude-code-deck/`.
 ```bash
 npm install
 npm run watch        # rebuild + restart the plugin on every change (after `streamdeck link`)
-npm test             # 400+ unit tests (node --test)
+npm test             # 400+ unit tests (node --test), on any OS
+npm run test:docker  # the same checks + build in a clean Linux container
+npm run test:e2e:setup && npm run test:e2e:win   # Windows: the UI Automation helper against a stand-in Claude app
 npm run typecheck
 npm run validate     # streamdeck validate
 npm run gen          # regenerate icons, bundled profiles and manifest.json
@@ -177,11 +189,11 @@ src/
   actions/           one file per key / dial
   claude/            app + CLI integration: session files, Accessibility (JXA), usage, live usage
   render/            SVG rendering for keys, dials and the Neo infobar
-  system/            Keep Awake (KeepingYouAwake)
+  system/            Keep Awake (KeepingYouAwake on macOS, built in on Windows)
 scripts/             icon / profile / manifest / screenshot generators, Property Inspector checks
 docs/images/         README and social images (1600 × 900 @2x)
 com.local.claudecode.sdPlugin/   the plugin bundle (manifest, UI, images, layouts, profiles)
-test/                unit tests
+test/                unit tests; test/e2e-win: Windows end-to-end tests (Electron stand-in for the Claude app)
 ```
 
 ## License

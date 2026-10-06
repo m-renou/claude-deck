@@ -1,4 +1,4 @@
-// Where the Claude desktop app and Claude Code keep their local state (macOS; Windows paths for later).
+// Where the Claude desktop app and Claude Code keep their local state (macOS and Windows).
 
 import fs from "node:fs";
 import os from "node:os";
@@ -6,12 +6,34 @@ import path from "node:path";
 
 const home = (): string => os.homedir();
 
-/** ~/Library/Application Support/Claude (desktop app data). */
+/** ~/Library/Application Support/Claude (desktop app data); %APPDATA%\Claude on Windows. */
 export function appSupportDir(): string {
   if (process.env.CLAUDE_CODE_DECK_APP_DIR) return process.env.CLAUDE_CODE_DECK_APP_DIR;
-  if (process.platform === "win32") return path.join(process.env.APPDATA ?? path.join(home(), "AppData", "Roaming"), "Claude");
+  if (process.platform === "win32") return winAppSupportDir(process.env, home());
   return path.join(home(), "Library", "Application Support", "Claude");
 }
+
+/** Windows: %APPDATA%\Claude — where the app (installer or Microsoft Store / MSIX) keeps its data. Should an MSIX
+ *  install keep it in its private copy instead (%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude), that
+ *  one is used. */
+export function winAppSupportDir(env: NodeJS.ProcessEnv, homeDir: string, exists: (p: string) => boolean = fs.existsSync): string {
+  const roaming = path.win32.join(env.APPDATA ?? path.win32.join(homeDir, "AppData", "Roaming"), "Claude");
+  if (exists(path.win32.join(roaming, "claude-code-sessions"))) return roaming;
+  const packages = path.win32.join(env.LOCALAPPDATA ?? path.win32.join(homeDir, "AppData", "Local"), "Packages");
+  try {
+    for (const p of fs.readdirSync(packages)) {
+      if (!/^Claude_/i.test(p)) continue;
+      const dir = path.win32.join(packages, p, "LocalCache", "Roaming", "Claude");
+      if (exists(path.win32.join(dir, "claude-code-sessions"))) return dir;
+    }
+  } catch {
+    // no packages folder
+  }
+  return roaming;
+}
+
+/** The desktop app's executable name on Windows (CLAUDE_CODE_DECK_APP_EXE overrides it, for tests). */
+export const claudeWinExe = (): string => process.env.CLAUDE_CODE_DECK_APP_EXE || CLAUDE_WIN_EXE;
 
 /** One JSON file per Code-tab chat: <appSupport>/claude-code-sessions/<account>/<org>/local_<uuid>.json */
 export const desktopSessionsDir = (): string => path.join(appSupportDir(), "claude-code-sessions");
@@ -96,3 +118,5 @@ export function findClaudeCli(): string | undefined {
 
 export const CLAUDE_BUNDLE_ID = "com.anthropic.claudefordesktop";
 export const CLAUDE_APP_PATH = "/Applications/Claude.app";
+/** Windows: the desktop app's executable (Stream Deck's ApplicationsToMonitor names it so). */
+export const CLAUDE_WIN_EXE = "Claude.exe";

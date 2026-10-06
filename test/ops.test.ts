@@ -54,6 +54,10 @@ function age(id: string, ms = 60_000): void {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Let the clock pass the press before the app "writes" the session file: only a file written after a press confirms it,
+ *  and a file's mtime can trail Date.now() by a clock tick (a few ms on Linux, ~16 ms on Windows). */
+const afterPress = () => sleep(40);
+
 /** A chat file the way the desktop app writes it. */
 function writeChat(id: string, over: Record<string, unknown> = {}): void {
   fs.mkdirSync(SESSIONS, { recursive: true });
@@ -464,7 +468,7 @@ describe("model key", () => {
     let late: unknown;
     const r = await ops.setModel("claude-fable-5-1", undefined, (x) => (late = x));
     assert.equal(r.ok, true);
-    await sleep(3);
+    await afterPress();
     writeChat("local_a", { model: "claude-fable-5-1" }); // the app wrote it
     await new Promise((res) => setTimeout(res, 60));
     hubMod.hub.refresh();
@@ -493,7 +497,7 @@ describe("model key", () => {
     await ops.setModel("next"); // P2: back to Opus — the old file says Opus too, but that's not a confirmation
     assert.equal(hubMod.hub.snapshot.selected!.model, "claude-opus-5-5");
     assert.equal(hubMod.hub.snapshot.selected!.pending, true);
-    await sleep(5);
+    await afterPress();
     writeChat("local_a", { model: "claude-fable-5-1" }); // P1's switch lands
     hubMod.hub.refresh(true);
     assert.equal(hubMod.hub.snapshot.selected!.model, "claude-opus-5-5", "P2's value is still the one shown");
@@ -659,7 +663,7 @@ describe("effort key", () => {
     ops.timing.confirmMs = 200;
     let late: unknown;
     await ops.setEffort("ultracode", undefined, (x) => (late = x));
-    await sleep(3);
+    await afterPress();
     writeChat("local_a", { effort: "xhigh", sessionSettings: { ultracode: true } });
     await new Promise((res) => setTimeout(res, 300));
     assert.equal(late, undefined);
@@ -672,7 +676,7 @@ describe("hub: optimistic values", () => {
     hubMod.hub.setPending(id, { effort: "max", ultracode: false });
     assert.equal(hubMod.hub.snapshot.selected!.effort, "max");
     assert.equal(hubMod.hub.snapshot.selected!.pending, true);
-    await sleep(3);
+    await afterPress();
     writeChat(id, { effort: "max" });
     hubMod.hub.refresh();
     assert.equal(hubMod.hub.snapshot.selected!.effort, "max");
@@ -704,7 +708,7 @@ describe("hub: optimistic values", () => {
     hubMod.hub.refresh(true);
     hubMod.hub.setPending(id, { model: "claude-opus-5-5" });
     assert.equal(hubMod.hub.snapshot.selected!.pending, true);
-    await sleep(5);
+    await afterPress();
     writeChat(id, { model: "claude-opus-5-5" }); // written after the press
     hubMod.hub.refresh();
     assert.equal(hubMod.hub.snapshot.selected!.pending, undefined);
@@ -727,7 +731,7 @@ describe("hub: optimistic values", () => {
   it("matches suffixed model ids", async () => {
     const id = oneChat({ model: "claude-opus-5-5" });
     hubMod.hub.setPending(id, { model: "claude-fable-5-1" });
-    await sleep(3);
+    await afterPress();
     writeChat(id, { model: "claude-fable-5-1[1m]" });
     hubMod.hub.refresh();
     assert.equal(hubMod.hub.pendingFor(id), undefined);

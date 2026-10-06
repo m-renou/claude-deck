@@ -10,6 +10,10 @@ import { afterEach, describe, it } from "node:test";
 import { INBOX_OPEN, loginCommand, TURN_STARTED, UsageCli } from "../src/claude/usage-cli.ts";
 import { LiveUsage, type LiveUsageOptions, type LiveUsageState } from "../src/claude/usage-live.ts";
 import { CLI, FakeClaude, FakeClock, NEW_CLI, settle, SIGNED_OUT_RESPONSE, USAGE_RESPONSE } from "./fake-claude.ts";
+import { setHostPlatform } from "../src/platform.ts";
+
+// The macOS wording (Terminal, shell quoting) whatever machine runs the tests; Windows has its own cases.
+setHostPlatform("darwin");
 
 const T0 = Date.UTC(2026, 9, 2, 20, 0);
 const S = 1000;

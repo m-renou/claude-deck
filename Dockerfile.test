@@ -1,0 +1,10 @@
+# A clean Linux run of the platform-independent checks: typecheck, unit tests, PI pages, build. The macOS (JXA) and
+# Windows (UI Automation) programs are covered by their own suites: the simulated System Events in test/control.test.ts
+# runs here too; the Windows end-to-end suite (test/e2e-win) needs a Windows desktop (npm run test:e2e:win).
+#   npm run test:docker
+FROM node:24-bookworm-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY . .
+CMD ["sh", "-c", "npm run typecheck && npm test && node scripts/check-pi.ts && npm run build"]

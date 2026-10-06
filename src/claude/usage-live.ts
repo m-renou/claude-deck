@@ -1,4 +1,4 @@
-// Live plan usage for the Usage keys, every minute, from Claude Code on this Mac (src/claude/usage-cli.ts: one
+// Live plan usage for the Usage keys, every minute, from Claude Code on this computer (src/claude/usage-cli.ts: one
 // long-lived Claude Code process answering "get_usage" with its own sign-in) — the Claude app itself writes
 // plan-usage-history.json only every 15 min, and only while its menu-bar menu was opened in the last 24 h.
 //
@@ -26,7 +26,7 @@
 
 import { EventEmitter } from "node:events";
 import type { PlanSample } from "./usage.ts";
-import { CliError, type Clock, loginCommand, oneLine, readUsageAnswer, realClock, UsageCli } from "./usage-cli.ts";
+import { CliError, type Clock, loginCommand, oneLine, readUsageAnswer, realClock, terminalName, UsageCli } from "./usage-cli.ts";
 
 /**
  *   idle        not asked yet
@@ -287,7 +287,7 @@ export class LiveUsage extends EventEmitter {
       this.signedOut++;
       this.endProcess(); // a running Claude Code may never notice a sign-in made in Terminal: the next try is a new one
       this.due = at + (this.signedOut < this.opts.signedOutTries ? this.opts.pollMs : this.opts.maxBackoffMs);
-      this.fail("signed-out", `Claude Code isn't signed in — run ${loginCommand(this.source.cli)} in Terminal once`, at);
+      this.fail("signed-out", `Claude Code isn't signed in — run ${loginCommand(this.source.cli)} in ${terminalName()} once`, at);
       return;
     }
     this.due = at + this.opts.pollMs;

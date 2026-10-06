@@ -30,7 +30,7 @@ export const ACTIONS: ActionDef[] = [
     multi: false,
   },
   { id: "new-chat", name: "New Chat", tooltip: "Start a new Claude Code chat in the Claude desktop app.", controllers: ["Keypad"], icon: "compose" },
-  { id: "dictate", name: "Dictate", tooltip: "Dictate a prompt into the selected chat (macOS Dictation).", controllers: ["Keypad"], icon: "mic" },
+  { id: "dictate", name: "Dictate", tooltip: "Dictate a prompt into the selected chat (macOS Dictation, Windows voice typing).", controllers: ["Keypad"], icon: "mic" },
   { id: "send-prompt", name: "Send Prompt", tooltip: "Send a configured prompt to the selected chat.", controllers: ["Keypad"], icon: "send" },
   { id: "steer", name: "Steer", tooltip: "Give additional direction while the selected chat is working.", controllers: ["Keypad"], icon: "steer" },
   {
@@ -63,7 +63,7 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "keep-awake",
     name: "Keep Awake",
-    tooltip: "Keep your Mac awake with KeepingYouAwake. Press to turn it on or off.",
+    tooltip: "Keep your computer awake (on a Mac with KeepingYouAwake). Press to turn it on or off.",
     controllers: ["Keypad"],
     icon: "cup",
   },

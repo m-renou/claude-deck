@@ -138,6 +138,18 @@ Key canvas 144 × 144 (SVG, rendered with `data:image/svg+xml`). The physical ke
   `…/deactivate`, opened with `open -g`; never `toggle` — the press reads the state and picks the command) and reads
   its state from the `/usr/bin/caffeinate` child KeepingYouAwake runs while active (`ps`; `-t` gives a timed session's
   end), polling only while a Keep Awake key is visible.
+* **Windows** does the same through Windows UI Automation instead of System Events: a small C# program
+  (`src/claude/uia-win.ts`, compiled on first use with the .NET Framework compiler every Windows 10/11 has, into
+  `%LOCALAPPDATA%\claude-code-deck\uia\<hash>\`) takes the same requests on stdin and answers with the same replies
+  and error codes. It uses the COM UIA client (UIA3) — the managed one doesn't see Chromium's tree — and Chromium only
+  builds the page's tree once a UIA client asks, so a first search is retried for a few seconds. Shortcuts use Ctrl
+  where macOS uses ⌘ (Ctrl+Shift+I / E, Ctrl+Alt+F …), keys go out with SendInput (layout-aware), the clipboard is saved
+  format by format and our text is kept out of the clipboard history. Windows asks for no permission, so there is no
+  ⚠ badge; a press only fails when Claude runs as administrator (Windows then drops the keys) or when another app holds
+  a shortcut system-wide. Links open through the shell's URL handler. Dictate presses Win+H (Windows voice typing).
+  Keep Awake needs no app there: the helper's `keepawake` mode holds `SetThreadExecutionState(ES_SYSTEM_REQUIRED |
+  ES_DISPLAY_REQUIRED)` until its time is up, it's turned off, or the plugin quits. The desktop app (Claude.exe) is told
+  apart from Claude Code CLIs (also claude.exe) by folder.
 * Every switch of the app (Activity, New Chat, a key that opens its chat) is a queued job that includes the app's
   switch time, so the next key's keystrokes can't reach the chat shown before. Model, Effort, Stop and panel keys never
   wait for the background prompt-box search.

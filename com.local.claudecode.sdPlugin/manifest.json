@@ -17,6 +17,10 @@
 		{
 			"Platform": "mac",
 			"MinimumVersion": "13"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
 		}
 	],
 	"Nodejs": {
@@ -26,6 +30,9 @@
 	"ApplicationsToMonitor": {
 		"mac": [
 			"com.anthropic.claudefordesktop"
+		],
+		"windows": [
+			"Claude.exe"
 		]
 	},
 	"Profiles": [

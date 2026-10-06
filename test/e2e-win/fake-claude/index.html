@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude</title>
+    <style>
+      body { font-family: "Segoe UI", sans-serif; background: #1f1e1d; color: #eee; margin: 0; padding: 16px; }
+      #prompt { min-height: 60px; border: 1px solid #555; padding: 8px; white-space: pre-wrap; background: #2a2928; color: #eee; width: 95%; }
+      #effort-pop, #model-menu, #slash-menu { border: 1px solid #888; padding: 8px; margin: 8px 0; background: #333; }
+      [hidden] { display: none !important; }
+      [role="menuitem"]:focus { outline: 2px solid #d97757; }
+    </style>
+  </head>
+  <body>
+    <header><span>Code</span> <button id="other">Other button</button></header>
+    <main id="chat">
+      <div id="messages" aria-label="Messages"></div>
+      <div id="slash-menu" role="listbox" aria-label="Commands" hidden></div>
+      <div id="model-menu" role="menu" aria-label="Model" hidden>
+        <div role="menuitem" tabindex="-1" data-model="claude-opus-5-5">1 Opus 5.5</div>
+        <div role="menuitem" tabindex="-1" data-model="claude-fable-5-1">2 Fable 5.1</div>
+        <div role="menuitem" tabindex="-1" data-model="claude-sonnet-5-5">3 Sonnet 5.5</div>
+      </div>
+      <div id="effort-pop" hidden>
+        <input id="effort" type="range" min="0" max="5" step="1" value="2" aria-label="Effort" />
+      </div>
+      <div id="composer"></div>
+    </main>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const emit = (ev) => window.fake.emit(ev);
+      const composer = document.getElementById("composer");
+      let box;
+      if (q.get("view") !== "home") {
+        if (q.get("prompt") === "textarea") {
+          box = document.createElement("textarea");
+          box.rows = 3;
+        } else {
+          box = document.createElement("div");
+          box.contentEditable = "true";
+          box.setAttribute("role", "textbox");
+          box.setAttribute("aria-multiline", "true");
+        }
+        box.id = "prompt";
+        box.setAttribute("aria-label", "Prompt");
+        composer.appendChild(box);
+        // the real box starts focused when a chat opens
+        setTimeout(() => box.focus(), 50);
+      }
+      const text = () => (box.tagName === "TEXTAREA" ? box.value : box.innerText);
+      const clear = () => (box.tagName === "TEXTAREA" ? (box.value = "") : (box.innerHTML = ""));
+
+      // A slash command: the first Return picks it in the command menu (the box keeps "/cmd "), the second sends it.
+      let slashPicked = false;
+      const slash = document.getElementById("slash-menu");
+
+      if (box) {
+        box.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" || e.shiftKey) return;
+          e.preventDefault();
+          const t = text().trim();
+          if (!t) return emit({ type: "enter-empty" });
+          if (t.startsWith("/") && !/\s/.test(t) && !slashPicked) {
+            slashPicked = true;
+            emit({ type: "slash-menu", text: t });
+            return;
+          }
+          slashPicked = false;
+          emit({ type: "send", text: t });
+          const m = document.createElement("p");
+          m.textContent = t;
+          document.getElementById("messages").appendChild(m);
+          clear();
+        });
+        box.addEventListener("input", () => (slashPicked = false));
+      }
+
+      const effortPop = document.getElementById("effort-pop");
+      const effort = document.getElementById("effort");
+      effort.addEventListener("input", () => emit({ type: "effort", value: Number(effort.value) }));
+
+      const menu = document.getElementById("model-menu");
+      const closeMenu = () => {
+        menu.hidden = true;
+        box?.focus();
+      };
+
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          const mods = [e.ctrlKey && "ctrl", e.shiftKey && "shift", e.altKey && "alt", e.metaKey && "meta"].filter(Boolean);
+          if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
+          emit({ type: "key", key: e.key, code: e.code, mods, target: document.activeElement?.id || document.activeElement?.tagName });
+          // (Ctrl+Shift+F7 / F8: the tests' stand-ins where another app holds Ctrl+Shift+E / I system-wide)
+          if (e.ctrlKey && e.shiftKey && (e.code === "KeyE" || e.code === "F7")) {
+            e.preventDefault();
+            if (effortPop.hidden) {
+              effortPop.hidden = false;
+              effort.focus();
+            } else {
+              effortPop.hidden = true;
+              box?.focus();
+            }
+            emit({ type: "effort-toggle", open: !effortPop.hidden });
+          } else if (e.ctrlKey && e.shiftKey && (e.code === "KeyI" || e.code === "F8")) {
+            e.preventDefault();
+            menu.hidden = false;
+            menu.querySelector("[role=menuitem]").focus();
+            emit({ type: "model-menu" });
+          } else if (!menu.hidden && /^[1-9]$/.test(e.key)) {
+            e.preventDefault();
+            const item = menu.querySelectorAll("[role=menuitem]")[Number(e.key) - 1];
+            if (item) emit({ type: "model", model: item.dataset.model });
+            closeMenu();
+          } else if (e.key === "Escape") {
+            emit({ type: "stop" });
+            if (!menu.hidden) closeMenu();
+          }
+        },
+        true,
+      );
+    </script>
+  </body>
+</html>

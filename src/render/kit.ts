@@ -9,8 +9,9 @@
 /** Key canvas (px). */
 export const SIZE = 144;
 
-/** System UI font, bold/semibold (DESIGN.md). Unquoted names: some rasterisers take the attribute verbatim. */
-export const FONT = "-apple-system, system-ui, SF Pro Display, SF Pro Text, Helvetica Neue, Helvetica, Arial, sans-serif";
+/** System UI font, bold/semibold (DESIGN.md); Segoe UI on Windows. Unquoted names: some rasterisers take the attribute
+ *  verbatim. */
+export const FONT = "-apple-system, system-ui, SF Pro Display, SF Pro Text, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif";
 export const WEIGHT = "600";
 
 /** Colour tokens (DESIGN.md). */

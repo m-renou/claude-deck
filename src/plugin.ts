@@ -10,9 +10,10 @@ import os from "node:os";
 import streamDeck from "@elgato/streamdeck";
 import { renderAllActions } from "./actions/base.ts";
 import { createActions } from "./actions/index.ts";
-import { CLAUDE_BUNDLE_ID } from "./claude/paths.ts";
+import { CLAUDE_BUNDLE_ID, CLAUDE_WIN_EXE } from "./claude/paths.ts";
 import { usageLive } from "./claude/usage-live.ts";
 import { hub } from "./hub.ts";
+import { keepAwake } from "./system/awake.ts";
 
 streamDeck.logger.setLevel("info");
 const log = streamDeck.logger.createScope("Claude Code");
@@ -34,9 +35,18 @@ function refresh(why: string): void {
   }
 }
 
-// The manifest monitors the Claude desktop app (ApplicationsToMonitor).
+// The manifest monitors the Claude desktop app (ApplicationsToMonitor): its bundle id on macOS, Claude.exe on Windows.
+// On Windows that name is also a Claude Code CLI's (claude.exe), so there a launch is checked (the hub asks the
+// helper, which tells the app from the CLI by its folder) instead of believed.
+const isClaudeApp = (application: string): boolean =>
+  process.platform === "win32" ? application.toLowerCase() === CLAUDE_WIN_EXE.toLowerCase() : application === CLAUDE_BUNDLE_ID;
+
 streamDeck.system.onApplicationDidLaunch((ev) => {
-  if (ev.application !== CLAUDE_BUNDLE_ID) return;
+  if (!isClaudeApp(ev.application)) return;
+  if (process.platform === "win32") {
+    void hub.recheckApp().catch(() => undefined);
+    return;
+  }
   log.info("Claude app launched");
   hub.snapshot.app = { ...hub.snapshot.app, running: true };
   refresh("app launch");
@@ -46,7 +56,11 @@ streamDeck.system.onApplicationDidLaunch((ev) => {
   hub.warmSoon(8000);
 });
 streamDeck.system.onApplicationDidTerminate((ev) => {
-  if (ev.application !== CLAUDE_BUNDLE_ID) return;
+  if (!isClaudeApp(ev.application)) return;
+  if (process.platform === "win32") {
+    void hub.recheckApp().catch(() => undefined);
+    return;
+  }
   log.info("Claude app quit");
   hub.snapshot.app = { ...hub.snapshot.app, running: false };
   refresh("app quit");
@@ -71,10 +85,14 @@ usageLive.on("change", () => {
   else log.warn(line);
 });
 // Never leave Claude Code running behind the plugin. (Its stdin closes with the plugin anyway, which ends it too.)
-process.on("exit", () => usageLive.shutdown());
+process.on("exit", () => {
+  usageLive.shutdown();
+  if ("shutdown" in keepAwake) keepAwake.shutdown(); // Windows: end the keep-awake session with the plugin
+});
 for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) {
   process.once(sig, () => {
     usageLive.shutdown();
+    if ("shutdown" in keepAwake) keepAwake.shutdown();
     process.exit(128 + (os.constants.signals[sig] ?? 0));
   });
 }

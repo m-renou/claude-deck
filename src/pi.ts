@@ -23,7 +23,7 @@ import { readPlanUsage } from "./claude/usage.ts";
 import { usageLive } from "./claude/usage-live.ts";
 import { hub } from "./hub.ts";
 import { chatItems, folderItems, modelItems, modelSlotItems, type PiEvent, type PiStatus, piRequest, skillItems, statusPayload } from "./pi-core.ts";
-import { keepAwake } from "./system/keep-awake.ts";
+import { keepAwake } from "./system/awake.ts";
 
 const PREFIX = `${PLUGIN_UUID}.`;
 /** A PI can ask before the plugin has processed its propertyInspectorDidAppear; replies wait this long for it. */

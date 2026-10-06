@@ -4,7 +4,7 @@
 // it needs no Accessibility permission.
 
 import { keepAwakeKey } from "../render/keys.ts";
-import { keepAwake } from "../system/keep-awake.ts";
+import { keepAwake } from "../system/awake.ts";
 import { ClaudeAction, type Inst } from "./base.ts";
 import { keepAwakeView } from "./logic.ts";
 import { keepAwakeMode, keepAwakeSeconds, type KeepAwakeSettings } from "./settings.ts";

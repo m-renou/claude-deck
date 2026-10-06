@@ -15,7 +15,10 @@
     "screenshots": "node scripts/gen-screenshots.ts",
     "typecheck": "tsc --noEmit -p .",
     "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
-    "pack": "mkdir -p dist && streamdeck pack com.local.claudecode.sdPlugin --force --no-update-check -o dist"
+    "test:e2e:setup": "npm --prefix test/e2e-win install --no-audit --no-fund && node test/e2e-win/node_modules/electron/install.js",
+    "test:e2e:win": "node --test --test-reporter=spec \"test/e2e-win/*.e2e.ts\"",
+    "test:docker": "docker build -f Dockerfile.test -t claude-deck-test . && docker run --rm claude-deck-test",
+    "pack": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && streamdeck pack com.local.claudecode.sdPlugin --force --no-update-check -o dist"
   },
   "devDependencies": {
     "@elgato/cli": "^1.10.1",

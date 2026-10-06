@@ -12,7 +12,7 @@ import type { StampedResult } from "./actions/core.ts";
 import { NO_MODEL } from "./actions/settings.ts";
 import type { Skill } from "./claude/extras.ts";
 import { asOf, clockTime, type PlanSample } from "./claude/usage.ts";
-import { loginCommand, oneLine } from "./claude/usage-cli.ts";
+import { loginCommand, oneLine, terminalName } from "./claude/usage-cli.ts";
 import type { LiveUsageState } from "./claude/usage-live.ts";
 import { icon } from "./render/icons.ts";
 import { STATUS_STYLE } from "./render/keys.ts";
@@ -106,7 +106,7 @@ export function liveUsageLine({ state: s, watching, appSampleAt, cli, now }: Liv
       return watching ? out("good", `Live · updated ${at}`, `Every minute while a Usage key shows ${PLAN_VIEWS}.`) : out("idle", `Paused · last update ${at}`, `Starts again when a Usage key shows ${PLAN_VIEWS}.`);
     }
     case "signed-out":
-      return { ...out("bad", "Sign in once: run this in Terminal", keys ? `${keys} meanwhile.` : undefined), loginCommand: loginCommand(s.cli ?? cli) };
+      return { ...out("bad", `Sign in once: run this in ${terminalName()}`, keys ? `${keys} meanwhile.` : undefined), loginCommand: loginCommand(s.cli ?? cli) };
     case "no-answer":
       return out("bad", "Claude Code didn't answer — retrying", join(s.message, s.retryAt !== undefined ? `next try ${clockTime(s.retryAt)}` : undefined, keys && `${keys} until it answers.`));
     case "no-cli":

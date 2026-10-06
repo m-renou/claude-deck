@@ -26,6 +26,10 @@ import {
   statusPayload,
 } from "../src/pi-core.ts";
 import type { Chat, ModelInfo, Snapshot } from "../src/types.ts";
+import { setHostPlatform } from "../src/platform.ts";
+
+// The macOS wording (Terminal, shell quoting) whatever machine runs the tests.
+setHostPlatform("darwin");
 
 const NOW = 1_800_000_000_000;
 

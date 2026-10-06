@@ -77,6 +77,27 @@
     return hr < 24 ? `${hr} h ago` : `${Math.round(hr / 24)} d ago`;
   }
 
+  // ── Platform: data-os="mac|win" blocks show on that OS only; data-win-text replaces a text on Windows ────────
+
+  const WIN = /Windows/i.test(navigator.userAgent || "");
+  document.documentElement.dataset.os = WIN ? "win" : "mac";
+  for (const el of $$("[data-os]")) el.hidden = el.dataset.os !== (WIN ? "win" : "mac");
+  if (WIN) {
+    for (const el of $$("[data-win-text]")) el.textContent = el.dataset.winText;
+    // sdpi-select draws its own copy of the options: rename those too once it has.
+    if (window.customElements)
+      customElements.whenDefined("sdpi-select").then(() =>
+        setTimeout(() => {
+          for (const s of $$("sdpi-select")) {
+            for (const o of $$("option[data-win-text]", s)) {
+              const copy = s.shadowRoot && Array.from(s.shadowRoot.querySelectorAll("option")).find((x) => x.value === o.value);
+              if (copy) copy.textContent = o.dataset.winText;
+            }
+          }
+        }, 0),
+      );
+  }
+
   // ── Settings mirror (for show-if) ─────────────────────────────────────────────────────────────────────────
 
   const settings = {};
@@ -343,7 +364,8 @@
   const rows = ((statusHost && statusHost.dataset.rows) || "app,access,chat,result")
     .split(",")
     .map((r) => r.trim())
-    .filter((r) => ROWS[r]);
+    .filter((r) => ROWS[r])
+    .filter((r) => !(WIN && r === "access")); // Windows asks for no permission
   /** The first row's cell carries "waiting for the plugin" / "no answer". */
   const firstCell = rows.length ? ROWS[rows[0]][1] : "";
 
@@ -395,7 +417,8 @@
     const k = p.keepAwake && typeof p.keepAwake === "object" ? p.keepAwake : null;
     if (k) {
       const err = str(k.error) ? sub(`Couldn't read its state: ${str(k.error)}`) : "";
-      if (!k.installed) fill(cell("cc-s-awake"), dot("bad"), "KeepingYouAwake isn't installed", sub("Get it from keepingyouawake.app (or Homebrew), then press the key."), err);
+      if (WIN) fill(cell("cc-s-awake"), dot(k.active ? "good" : ""), k.active ? (num(k.until) > 0 ? `On until ${clock(k.until)}` : "On") : "Off", sub(k.pending ? "Switching…" : k.active ? "Your PC won't go to sleep." : "Press the key to keep your PC awake."), err);
+      else if (!k.installed) fill(cell("cc-s-awake"), dot("bad"), "KeepingYouAwake isn't installed", sub("Get it from keepingyouawake.app (or Homebrew), then press the key."), err);
       else if (k.active) fill(cell("cc-s-awake"), dot("good"), num(k.until) > 0 ? `On until ${clock(k.until)}` : "On", sub(k.pending ? "Switching…" : "Your Mac won't go to sleep."), err);
       else fill(cell("cc-s-awake"), dot(), "Off", sub(k.pending ? "Switching…" : k.running ? "KeepingYouAwake is running." : "KeepingYouAwake isn't running (turning on starts it)."), err);
     }

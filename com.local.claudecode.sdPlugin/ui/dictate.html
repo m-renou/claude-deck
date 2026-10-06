@@ -9,8 +9,10 @@
 </head>
 <body data-action="dictate">
   <div class="cc-info">
-    <div class="cc-row"><span class="cc-k">Press</span><span class="cc-v">Opens the selected chat and starts macOS Dictation (Edit ▸ Start Dictation). Press again to stop.</span></div>
-    <div class="cc-row"><span class="cc-k">Needs</span><span class="cc-v">Dictation turned on: System Settings → Keyboard → Dictation.</span></div>
+    <div class="cc-row" data-os="mac"><span class="cc-k">Press</span><span class="cc-v">Opens the selected chat and starts macOS Dictation (Edit ▸ Start Dictation). Press again to stop.</span></div>
+    <div class="cc-row" data-os="mac"><span class="cc-k">Needs</span><span class="cc-v">Dictation turned on: System Settings → Keyboard → Dictation.</span></div>
+    <div class="cc-row" data-os="win" hidden><span class="cc-k">Press</span><span class="cc-v">Opens the selected chat and starts Windows voice typing (<kbd>Win+H</kbd>) in its prompt box. Press again to stop.</span></div>
+    <div class="cc-row" data-os="win" hidden><span class="cc-k">Needs</span><span class="cc-v">Voice typing allowed: Settings → Privacy &amp; security → Speech.</span></div>
   </div>
   <div id="cc-status"></div>
   <script src="./pi.js"></script>

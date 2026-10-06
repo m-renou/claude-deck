@@ -25,7 +25,7 @@ const errorText = (err: unknown): string => (err instanceof Error ? err.message 
 const readFailed = (err: unknown): string => `Couldn't read KeepingYouAwake's state: ${errorText(err)}`;
 
 /** Where KYA can be installed (its process, wherever it lives, counts too). */
-export const kyaAppPaths = (home = os.homedir()): string[] => ["/Applications/KeepingYouAwake.app", path.join(home, "Applications", "KeepingYouAwake.app")];
+export const kyaAppPaths = (home = os.homedir()): string[] => ["/Applications/KeepingYouAwake.app", path.posix.join(home, "Applications", "KeepingYouAwake.app")];
 
 // ── Parsing (pure) ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -313,6 +313,3 @@ export class KeepAwake extends EventEmitter {
     }
   }
 }
-
-/** The plugin's KeepingYouAwake controller (one for all Keep Awake keys). */
-export const keepAwake = new KeepAwake();

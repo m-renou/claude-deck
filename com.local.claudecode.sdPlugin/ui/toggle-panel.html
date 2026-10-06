@@ -10,11 +10,11 @@
 <body data-action="toggle-panel">
   <sdpi-item label="Panel">
     <sdpi-select setting="panel" default="review">
-      <option value="review">Review (⌘⇧D)</option>
-      <option value="terminal">Terminal (⌃`)</option>
-      <option value="browser">Browser (⌘⇧B)</option>
-      <option value="files">Files (⌘⇧F)</option>
-      <option value="sideChat">Side chat (⌘;)</option>
+      <option value="review" data-win-text="Review (Ctrl+Shift+D)">Review (⌘⇧D)</option>
+      <option value="terminal" data-win-text="Terminal (Ctrl+`)">Terminal (⌃`)</option>
+      <option value="browser" data-win-text="Browser (Ctrl+Shift+B)">Browser (⌘⇧B)</option>
+      <option value="files" data-win-text="Files (Ctrl+Shift+F)">Files (⌘⇧F)</option>
+      <option value="sideChat" data-win-text="Side chat (Ctrl+;)">Side chat (⌘;)</option>
     </sdpi-select>
   </sdpi-item>
   <p class="cc-hint">Shows or hides the panel in the selected chat with the app's own shortcut.</p>

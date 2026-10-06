@@ -126,12 +126,7 @@ export class Hub extends EventEmitter {
       this.live = await this.roster.poll();
       this.refresh();
     });
-    every(5000, async () => {
-      const was = this.snapshot.app.running;
-      this.snapshot.app.running = await isClaudeRunning();
-      if (this.snapshot.app.running && !was) this.warmSoon(5000); // launched (or first check): find the prompt box
-      this.refresh();
-    });
+    every(5000, () => this.recheckApp());
     every(20_000, () => this.checkAccess());
     // Ages on keys ("1m", "2h") move on even when nothing else changes.
     every(30_000, () => this.refresh(true));
@@ -163,6 +158,14 @@ export class Hub extends EventEmitter {
       void warmUp({ periodic }).catch(() => undefined);
     }, delayMs);
     this.warmTimer.unref?.();
+  }
+
+  /** Is the Claude app running? (Polled; also asked when Stream Deck reports Claude.exe starting or quitting.) */
+  async recheckApp(): Promise<void> {
+    const was = this.snapshot.app.running;
+    this.snapshot.app.running = await isClaudeRunning();
+    if (this.snapshot.app.running && !was) this.warmSoon(5000); // launched (or first check): find the prompt box
+    this.refresh();
   }
 
   async checkAccess(): Promise<boolean> {

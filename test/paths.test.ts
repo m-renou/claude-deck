@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
-import { bundledClaudeClis, compareVersions } from "../src/claude/paths.ts";
+import { bundledClaudeClis, compareVersions, winAppSupportDir } from "../src/claude/paths.ts";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "claude-code-paths-test-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -51,7 +51,8 @@ describe("bundledClaudeClis", () => {
       [
         { rel: `2.1.286/aaaa/${MAC}`, mtime: Date.UTC(2026, 8, 1) },
         { rel: `2.1.286/bbbb/${MAC}`, mtime: Date.UTC(2026, 9, 1) },
-        { rel: `2.1.286/cccc/${MAC}`, mode: 0o644 },
+        // Not executable (Windows has no mode bits: there every file counts, so this one only exists elsewhere).
+        ...(process.platform === "win32" ? [] : [{ rel: `2.1.286/cccc/${MAC}`, mode: 0o644 }]),
       ],
       ["2.1.286/dddd", "2.1.287/half-downloaded", "not-a-version/x"],
     );
@@ -72,5 +73,28 @@ describe("bundledClaudeClis", () => {
     assert.ok(compareVersions("2.1.286", "2.1.284") > 0);
     assert.ok(compareVersions("1.0.10", "1.0.9") > 0);
     assert.equal(compareVersions("2.1", "2.1.0"), 0);
+  });
+});
+
+describe("winAppSupportDir (Windows)", () => {
+  const HOME = String.raw`C:\Users\me`;
+  const ROAMING = String.raw`C:\Users\me\AppData\Roaming\Claude`;
+  const env = { APPDATA: String.raw`C:\Users\me\AppData\Roaming`, LOCALAPPDATA: path.join(tmp, "local") };
+
+  it("%APPDATA%\\Claude when it holds the Code-tab chats (installer and Microsoft Store builds alike)", () => {
+    assert.equal(winAppSupportDir(env, HOME, (p) => p === String.raw`${ROAMING}\claude-code-sessions`), ROAMING);
+  });
+
+  it("an MSIX package's private copy when only that one has them", { skip: process.platform !== "win32" && "reads a Windows folder" }, () => {
+    const pkg = path.join(env.LOCALAPPDATA, "Packages", "Claude_pzs8sxrjxfjjc");
+    fs.mkdirSync(pkg, { recursive: true });
+    fs.mkdirSync(path.join(env.LOCALAPPDATA, "Packages", "Other_123"), { recursive: true });
+    const want = path.win32.join(env.LOCALAPPDATA, "Packages", "Claude_pzs8sxrjxfjjc", "LocalCache", "Roaming", "Claude");
+    assert.equal(winAppSupportDir(env, HOME, (p) => p === path.win32.join(want, "claude-code-sessions")), want);
+  });
+
+  it("%APPDATA%\\Claude when neither exists yet (a fresh install)", () => {
+    assert.equal(winAppSupportDir(env, HOME, () => false), ROAMING);
+    assert.equal(winAppSupportDir({}, HOME, () => false), ROAMING);
   });
 });

@@ -12,8 +12,10 @@ import { DEFAULT_EFFORT_CYCLE, DEFAULT_MODEL_SLOTS, EFFORT_LABEL, effortStopsFor
 import {
   type ChatOpts,
   type ControlError,
+  controlPlatform,
   dictation,
   type EffortResult,
+  keyLabel,
   openNewChat,
   pickModel,
   pressKeys,
@@ -134,7 +136,8 @@ export async function stop(): Promise<ActionResult> {
 export async function dictate(): Promise<ActionResult> {
   const s = hub.snapshot.selected;
   const r = await onChat(s, (o) => dictation(o), PROMPT_RETRY);
-  if (!r.ok && r.error === "menu-not-found") return fail("Turn on Dictation in System Settings → Keyboard → Dictation.");
+  if (!r.ok && r.error === "menu-not-found")
+    return fail(controlPlatform() === "win32" ? "Couldn't start voice typing (Win+H)." : "Turn on Dictation in System Settings → Keyboard → Dictation.");
   return r.ok ? ok("Dictation") : failed(r);
 }
 
@@ -245,7 +248,7 @@ export async function setModel(target: string = "next", slots?: readonly string[
     if (generation.get(key) === gen) hub.clearPending(s.id, ["model"]);
     return failed(r);
   }
-  confirmLater(key, gen, s.id, ["model"], pressAt, (c) => sameModel(c.model, id), `Sent ⌘⇧I ${idx + 1}, but the chat didn't switch to ${name}.`, onLate);
+  confirmLater(key, gen, s.id, ["model"], pressAt, (c) => sameModel(c.model, id), `Sent ${keyLabel(shortcut("modelMenu"))} ${idx + 1}, but the chat didn't switch to ${name}.`, onLate);
   return ok(name);
 }
 

@@ -1,0 +1,10 @@
+{
+  "name": "claude-deck-e2e-win",
+  "private": true,
+  "description": "Windows end-to-end tests: a fake Claude desktop app (Electron) driven by the plugin's UI Automation program.",
+  "type": "module",
+  "main": "fake-claude/main.cjs",
+  "devDependencies": {
+    "electron": "^38.0.0"
+  }
+}

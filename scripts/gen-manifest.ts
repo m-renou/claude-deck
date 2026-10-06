@@ -37,9 +37,12 @@ const manifest = {
   CodePath: "bin/plugin.js",
   SDKVersion: 3,
   Software: { MinimumVersion: "7.6" },
-  OS: [{ Platform: "mac", MinimumVersion: "13" }],
+  OS: [
+    { Platform: "mac", MinimumVersion: "13" },
+    { Platform: "windows", MinimumVersion: "10" },
+  ],
   Nodejs: { Version: "24", Debug: "enabled" },
-  ApplicationsToMonitor: { mac: ["com.anthropic.claudefordesktop"] },
+  ApplicationsToMonitor: { mac: ["com.anthropic.claudefordesktop"], windows: ["Claude.exe"] },
   ...(profiles.length ? { Profiles: profiles } : {}),
   Actions: ACTIONS.map((a) => {
     const action: Record<string, unknown> = {

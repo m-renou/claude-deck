@@ -34,6 +34,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
+import { hostPlatform } from "../platform.ts";
 import { findClaudeCli } from "./paths.ts";
 import type { PlanSample } from "./usage.ts";
 
@@ -96,11 +97,15 @@ export function shellQuote(s: string): string {
 /**
  * The Terminal command that signs Claude Code in (once: it keeps and refreshes its sign-in itself). The Claude app's
  * copy isn't on PATH, so plain `claude auth login` would say "command not found": the command names the CLI the
- * plugin found, and is plain `claude auth login` only when there is none.
+ * plugin found, and is plain `claude auth login` only when there is none. On Windows it's a PowerShell command.
  */
-export function loginCommand(cli: string | undefined): string {
+export function loginCommand(cli: string | undefined, platform: NodeJS.Platform = hostPlatform()): string {
+  if (platform === "win32") return cli ? `& '${cli.replace(/'/g, "''")}' auth login` : "claude auth login";
   return `${cli ? shellQuote(cli) : "claude"} auth login`;
 }
+
+/** Where people run loginCommand: Terminal on macOS, PowerShell on Windows. */
+export const terminalName = (platform: NodeJS.Platform = hostPlatform()): string => (platform === "win32" ? "PowerShell" : "Terminal");
 
 /** The process's environment: the plugin's, without anything that would hand Claude Code another sign-in or make it
  *  think it runs inside a session (CLAUDE_CODE_*, ANTHROPIC_*, CLAUDECODE) — then with its inbox for other sessions
